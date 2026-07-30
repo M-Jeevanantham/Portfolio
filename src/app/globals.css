@@ -1,26 +1,352 @@
 @import "tailwindcss";
 
+@theme {
+  --color-background: #000000;
+  --color-foreground: #ffffff;
+  --color-surface: #0f0f0f;
+  --color-surface-2: #111111;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-space), system-ui, sans-serif;
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; }
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #ffffff;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+html { scroll-behavior: auto; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #000;
+  color: #fff;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  overflow-x: hidden;
 }
+
+/* ════════════════════════════════════════
+   CUSTOM CURSOR
+════════════════════════════════════════ */
+
+/* Only hide cursor on portfolio page */
+.custom-cursor-active {
+  cursor: none;
+}
+.custom-cursor-active * {
+  cursor: none;
+}
+
+.cursor {
+  position: fixed;
+  top: 0; left: 0;
+  width: 10px; height: 10px;
+  background: #fff;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  transition: width 0.25s ease, height 0.25s ease;
+  mix-blend-mode: difference;
+  will-change: left, top;
+}
+
+.cursor-follower {
+  position: fixed;
+  top: 0; left: 0;
+  width: 36px; height: 36px;
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease, opacity 0.3s ease;
+  will-change: left, top;
+}
+
+/* ════════════════════════════════════════
+   BACKGROUND TEXTURES
+════════════════════════════════════════ */
+
+/* Dot grid */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px);
+  background-size: 44px 44px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ════════════════════════════════════════
+   SCANLINE
+════════════════════════════════════════ */
+@keyframes scanline {
+  0%   { transform: translateY(-4px); }
+  100% { transform: translateY(100vh); }
+}
+
+.scanline {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(transparent, rgba(255,255,255,0.025), transparent);
+  pointer-events: none;
+  z-index: 2;
+  animation: scanline 10s linear infinite;
+}
+
+/* ════════════════════════════════════════
+   TYPOGRAPHY
+════════════════════════════════════════ */
+
+/* ── Link hover underline ── */
+.link-underline {
+  position: relative;
+  display: inline-block;
+}
+.link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; left: 0;
+  width: 0; height: 1px;
+  background: currentColor;
+  transition: width 0.3s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.link-underline:hover::after { width: 100%; }
+
+/* ════════════════════════════════════════
+   INPUT
+════════════════════════════════════════ */
+.input-minimal {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  color: #fff;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 1rem;
+  padding: 14px 0;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+.input-minimal::placeholder { color: rgba(255,255,255,0.18); }
+.input-minimal:focus { border-color: rgba(255,255,255,0.55); }
+
+/* ════════════════════════════════════════
+   FLIP CARD
+════════════════════════════════════════ */
+.flip-card { perspective: 1000px; }
+
+.flip-card-inner {
+  position: relative;
+  width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.65s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.flip-card:hover .flip-card-inner { transform: rotateY(180deg); }
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 16px;
+}
+
+.flip-card-back { transform: rotateY(180deg); }
+
+/* ════════════════════════════════════════
+   PROGRESS BAR
+════════════════════════════════════════ */
+.progress-fill {
+  height: 100%;
+  background: #fff;
+  border-radius: 2px;
+  transform-origin: left;
+  transform: scaleX(0);
+  transition: transform 1.5s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* ════════════════════════════════════════
+   MARQUEE
+════════════════════════════════════════ */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  display: flex;
+  white-space: nowrap;
+  animation: marquee 24s linear infinite;
+}
+.marquee-track:hover { animation-play-state: paused; }
+
+/* ════════════════════════════════════════
+   LOADING SCREEN CLIP-PATH
+════════════════════════════════════════ */
+.loader-wrap {
+  clip-path: inset(0 0 0% 0);
+}
+
+/* ════════════════════════════════════════
+   SCROLLBAR
+════════════════════════════════════════ */
+::-webkit-scrollbar         { width: 3px; }
+::-webkit-scrollbar-track   { background: #000; }
+::-webkit-scrollbar-thumb   { background: rgba(255,255,255,0.12); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+
+/* ════════════════════════════════════════
+   SELECTION
+════════════════════════════════════════ */
+::selection {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+}
+
+/* ════════════════════════════════════════
+   INTERACTIVE SPOTLIGHT TORCH EFFECT
+════════════════════════════════════════ */
+[data-spotlight] {
+  position: relative;
+  overflow: hidden;
+}
+[data-spotlight]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    300px circle at var(--spotlight-x, 50%) var(--spotlight-y, 50%),
+    rgba(255, 255, 255, 0.07),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+[data-spotlight]:hover::before {
+  opacity: 1;
+}
+
+/* ════════════════════════════════════════
+   CURSOR MORPH LABEL
+════════════════════════════════════════ */
+.cursor::after {
+  content: attr(data-label);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: #000;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.cursor--label::after {
+  opacity: 1;
+}
+
+/* ════════════════════════════════════════
+   CHARACTER MASK SLOTS
+════════════════════════════════════════ */
+.char-mask {
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: bottom;
+}
+
+
+/* ════════════════════════════════════════
+   SECTION DISTINCT THEMES & AMBIENT GLOWS
+════════════════════════════════════════ */
+
+/* Hero: Cosmic Violet / Blue Glow */
+.section-hero-bg {
+  background: radial-gradient(circle at 50% 30%, rgba(99, 102, 241, 0.14) 0%, rgba(147, 51, 234, 0.05) 45%, #000 80%);
+}
+
+/* §01 About: Emerald Editorial */
+.section-about-bg {
+  background: radial-gradient(circle at 15% 30%, rgba(16, 185, 129, 0.09) 0%, rgba(5, 150, 105, 0.02) 50%, #030403 90%);
+}
+
+/* §02 Education: Warm Amber Flame */
+.section-edu-bg {
+  background: radial-gradient(circle at 85% 40%, rgba(249, 115, 22, 0.11) 0%, rgba(194, 65, 12, 0.03) 55%, #050302 95%);
+}
+
+/* §03 Skills: Indigo Glass Matrix */
+.section-skills-bg {
+  background: radial-gradient(circle at 50% 100%, rgba(99, 102, 241, 0.1) 0%, rgba(79, 70, 229, 0.03) 60%, #020204 95%);
+}
+
+/* §04 Experience: Cyberpunk Deep Grid */
+.section-exp-bg {
+  background: linear-gradient(180deg, #020204 0%, #060b18 50%, #020204 100%);
+}
+
+/* §05 Projects: Electric Studio Blue */
+.section-proj-bg {
+  background: radial-gradient(circle at 25% 35%, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0.03) 55%, #010308 95%);
+}
+
+/* §06 Achievements & Certs: Neon Cyan & Gold */
+.section-ach-bg {
+  background: radial-gradient(circle at 75% 25%, rgba(6, 182, 212, 0.1) 0%, rgba(234, 179, 8, 0.04) 50%, #020406 95%);
+}
+
+/* §07 Contact: Terminal Purple Glow */
+.section-contact-bg {
+  background: radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.11) 0%, rgba(126, 34, 206, 0.03) 60%, #030106 95%);
+}
+
+/* ── Distinct Card Hover Glows ── */
+.hover-glow-emerald:hover {
+  box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.25);
+  border-color: rgba(16, 185, 129, 0.4) !important;
+}
+
+.hover-glow-amber:hover {
+  box-shadow: 0 0 35px -5px rgba(249, 115, 22, 0.25);
+  border-color: rgba(249, 115, 22, 0.4) !important;
+}
+
+.hover-glow-cyan:hover {
+  box-shadow: 0 0 35px -5px rgba(6, 182, 212, 0.25);
+  border-color: rgba(6, 182, 212, 0.4) !important;
+}
+
+.hover-glow-indigo:hover {
+  box-shadow: 0 0 35px -5px rgba(99, 102, 241, 0.25);
+  border-color: rgba(99, 102, 241, 0.4) !important;
+}
+
+.hover-glow-purple:hover {
+  box-shadow: 0 0 35px -5px rgba(168, 85, 247, 0.25);
+  border-color: rgba(168, 85, 247, 0.4) !important;
+}
+
+.hover-glow-blue:hover {
+  box-shadow: 0 0 35px -5px rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+/* Glass card enhancement */
+.glass-card {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+

@@ -1,0 +1,125 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model About {
+  id                String   @id @default(uuid())
+  title             String   @default("Software Development Engineer")
+  bio               String
+  tagline           String?
+  location          String?
+  email             String?
+  githubUsername    String?
+  leetcodeUsername  String?
+  linkedinUrl       String?
+  instagramUrl      String?
+  updatedAt         DateTime @updatedAt
+}
+
+model Education {
+  id          String   @id @default(uuid())
+  institution String
+  degree      String
+  period      String
+  location    String?
+  grade       String?
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Experience {
+  id          String   @id @default(uuid())
+  company     String
+  role        String
+  period      String
+  location    String?
+  description String
+  skillsUsed  String?  // comma-separated skills
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Achievement {
+  id          String   @id @default(uuid())
+  title       String
+  platform    String   // e.g. "LeetCode", "GitHub", "Competitive Programming", "Hackathon"
+  stats       String   // e.g. "600+ Solved | Max Rating 1850"
+  linkUrl     String?
+  badgeUrl    String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Certification {
+  id            String   @id @default(uuid())
+  title         String
+  issuer        String   // e.g. AWS, Meta, Google, Coursera
+  issueDate     String
+  credentialId  String?
+  credentialUrl String?
+  imageUrl      String?
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  techStack   String   // Comma separated list of tech
+  liveUrl     String?
+  githubUrl   String?
+  imageUrl    String?
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Skill {
+  id          String   @id @default(uuid())
+  name        String
+  category    String   // e.g., "Frontend", "Backend", "DevOps", "Database"
+  proficiency Int      // 1-100 percentage
+  icon        String?  // icon or emoji identifier
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Resume {
+  id          String   @id @default(uuid())
+  title       String   @default("My Resume")
+  fileUrl     String   // base64 or stored file path
+  fileName    String
+  updatedAt   DateTime @updatedAt
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
