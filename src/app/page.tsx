@@ -1,12 +1,23 @@
 "use client";
 
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { useLenis } from "lenis/react";
+
 import {
   Download, Send, ExternalLink, Code2, Globe,
   GitBranch, ArrowUpRight, CheckCircle, ChevronDown,
   Mail, MapPin, Trophy, Award, GraduationCap, Compass, Calendar, Building, Terminal
 } from "lucide-react";
+import ImageCursorTrail from "@/components/skiper18";
+import Skiper6HoverMember from "@/components/skiper6";
+import SkiperSkillsMatrix from "@/components/SkiperSkillsMatrix";
+import Skiper16CardStackScroll from "@/components/skiper16";
+import Skiper28PerspectiveScroll from "@/components/skiper28";
+import Skiper80ExperienceShowcase from "@/components/skiper80";
+import Skiper17ProjectCardStack from "@/components/skiper17";
+import Skiper52Certifications from "@/components/skiper52";
+import Skiper8Preloader from "@/components/skiper8";
+
 
 // ─── Inline Brand SVG Icons ──────────────────────────────
 const Github = ({ className = "w-4 h-4" }: { className?: string }) => (
@@ -33,218 +44,18 @@ const Instagram = ({ className = "w-4 h-4" }: { className?: string }) => (
 );
 
 // ─── Types ───────────────────────────────────────────────
-interface AboutData { title?: string; bio?: string; githubUsername?: string; leetcodeUsername?: string; location?: string; email?: string; linkedinUrl?: string; instagramUrl?: string; }
+interface AboutData { title?: string; bio?: string; githubUsername?: string; leetcodeUsername?: string; location?: string; email?: string; linkedinUrl?: string; instagramUrl?: string; avatarUrl?: string; }
 interface Project { id: string; title: string; description: string; techStack: string; liveUrl?: string; githubUrl?: string; imageUrl?: string; featured?: boolean; }
 interface Skill { id: string; name: string; category: string; proficiency: number; }
 interface Experience { id: string; role: string; company: string; period: string; description: string; location?: string; skillsUsed?: string; }
 interface Education { id: string; degree: string; institution: string; period: string; grade?: string; }
 interface Achievement { id: string; title: string; platform: string; stats: string; linkUrl?: string; }
-interface Certification { id: string; title: string; issuer: string; issueDate: string; credentialUrl?: string; imageUrl?: string; }
+interface Certification { id: string; title: string; issuer: string; issueDate: string; credentialId?: string; credentialUrl?: string; imageUrl?: string; }
 interface Resume { fileUrl: string; fileName: string; }
 
-// ─── Loading Screen with SVG Self-Drawing + Liquid Exit + Network Check ───
+// ─── Loading Screen with Word Cycling Preloader ───
 function LoadingScreen({ onComplete }: { onComplete: () => void }) {
-  const [progress, setProgress] = useState(0);
-  const [phase, setPhase] = useState<"count" | "draw" | "liquidExit">("count");
-  const [isOnline, setIsOnline] = useState(true);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-  const displacementRef = useRef<SVGFEDisplacementMapElement>(null);
-  const captionRef = useRef<HTMLParagraphElement>(null);
-
-  // Monitor Network Connectivity
-  useEffect(() => {
-    const updateOnlineStatus = () => setIsOnline(navigator.onLine);
-    setIsOnline(navigator.onLine);
-    window.addEventListener("online", updateOnlineStatus);
-    window.addEventListener("offline", updateOnlineStatus);
-    return () => {
-      window.removeEventListener("online", updateOnlineStatus);
-      window.removeEventListener("offline", updateOnlineStatus);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isOnline) return;
-    let count = 0;
-    const interval = setInterval(() => {
-      count += 1;
-      setProgress(count);
-      if (count >= 100) { clearInterval(interval); setTimeout(() => setPhase("draw"), 300); }
-    }, 16);
-    return () => clearInterval(interval);
-  }, [isOnline]);
-
-  useEffect(() => {
-    if (phase !== "draw" || !isOnline) return;
-    const run = async () => {
-      const { gsap } = await import("gsap");
-      const paths = svgRef.current?.querySelectorAll<SVGPathElement>(".jeeva-stroke");
-      if (!paths?.length) return;
-
-      paths.forEach(p => {
-        const len = p.getTotalLength();
-        p.style.strokeDasharray = `${len}`;
-        p.style.strokeDashoffset = `${len}`;
-        p.style.opacity = "1";
-      });
-
-      if (displacementRef.current)
-        gsap.fromTo(displacementRef.current, { scale: 60 }, { scale: 0, duration: 1.2, ease: "power2.out" });
-
-      gsap.to(paths, {
-        strokeDashoffset: 0,
-        duration: 0.85,
-        ease: "power2.inOut",
-        stagger: 0.18,
-        onComplete: () => {
-          if (captionRef.current) {
-            gsap.fromTo(captionRef.current,
-              { opacity: 0, y: 14, letterSpacing: "0.6em" },
-              { opacity: 1, y: 0, letterSpacing: "0.35em", duration: 1.0, ease: "power3.out" }
-            );
-          }
-          setTimeout(() => setPhase("liquidExit"), 1200);
-        },
-      });
-    };
-    run();
-  }, [phase, isOnline]);
-
-  useEffect(() => {
-    if (phase !== "liquidExit" || !isOnline) return;
-    const run = async () => {
-      const { gsap } = await import("gsap");
-      if (!containerRef.current) return;
-      if (displacementRef.current)
-        gsap.to(displacementRef.current, { scale: 200, duration: 0.9, ease: "power3.in" });
-      gsap.to(containerRef.current, {
-        scale: 1.35, opacity: 0, filter: "blur(18px)",
-        duration: 1.0, ease: "power4.inOut", onComplete: onComplete,
-      });
-    };
-    run();
-  }, [phase, isOnline, onComplete]);
-
-  const counterScale = 1 + (progress / 100) * 0.6;
-  const counterOpacity = progress < 98 ? 0.08 + (progress / 100) * 0.12 : 0.2;
-
-  return (
-    <div ref={containerRef} className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center overflow-hidden">
-
-      {/* SVG liquid filter */}
-      <svg className="absolute w-0 h-0 overflow-hidden" aria-hidden="true">
-        <defs>
-          <filter id="lq">
-            <feTurbulence type="fractalNoise" baseFrequency="0.025 0.06" numOctaves="3" result="noise" />
-            <feDisplacementMap ref={displacementRef} in="SourceGraphic" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
-        </defs>
-      </svg>
-
-      {/* OFFLINE STATE ALERT */}
-      {!isOnline && (
-        <div className="z-50 max-w-md mx-6 p-8 bg-[#0a0b10] border border-red-500/30 rounded-2xl text-center space-y-4 shadow-2xl font-mono">
-          <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto text-red-400 font-bold text-xl">
-            !
-          </div>
-          <h3 className="text-white text-xl font-bold font-sans">No Internet Connection</h3>
-          <p className="text-white/50 text-xs leading-relaxed">
-            Please connect to the internet to load live assets, stats, and view Jeeva's portfolio.
-          </p>
-          <button
-            onClick={() => setIsOnline(navigator.onLine)}
-            className="px-6 py-2.5 bg-white text-black text-xs font-bold uppercase rounded-full hover:bg-zinc-200 transition-all"
-          >
-            Retry Connection
-          </button>
-        </div>
-      )}
-
-      {isOnline && (
-        <>
-          {/* Progress bar */}
-          <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/5">
-            <div className="h-full bg-white shadow-[0_0_12px_#fff]" style={{ width: `${progress}%`, transition: "width 0.016s linear" }} />
-          </div>
-
-          {/* Counter */}
-          {phase === "count" && (
-            <div
-              className="text-white select-none transition-transform"
-              style={{
-                fontSize: "clamp(8rem, 25vw, 18rem)",
-                fontFamily: "'Space Grotesk', sans-serif",
-                letterSpacing: "-0.05em",
-                lineHeight: 1,
-                fontWeight: 900,
-                color: `rgba(255,255,255,${counterOpacity})`,
-                transform: `scale(${counterScale})`,
-                transition: "transform 0.08s linear, color 0.08s linear",
-              }}
-            >
-              {String(progress).padStart(2, "0")}
-            </div>
-          )}
-
-          {/* SVG JEEVA'S self-drawing signature — Centered & Stylized */}
-          {(phase === "draw" || phase === "liquidExit") && (
-            <div className="flex flex-col items-center justify-center text-center gap-8 w-full px-4" style={{ filter: "url(#lq)" }}>
-              <svg ref={svgRef} viewBox="0 0 620 100" fill="none" xmlns="http://www.w3.org/2000/svg"
-                style={{ width: "clamp(280px, 60vw, 640px)", height: "auto", overflow: "visible" }} className="mx-auto">
-                {/* J */}
-                <path className="jeeva-stroke" d="M 25 15 L 25 70 Q 25 88 12 88 Q 4 88 4 82"
-                  stroke="white" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" style={{ opacity: 0 }} />
-                {/* E */}
-                <path className="jeeva-stroke" d="M 45 15 L 45 88 M 45 15 L 75 15 M 45 51 L 68 51 M 45 88 L 75 88"
-                  stroke="white" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" style={{ opacity: 0 }} />
-                {/* E2 */}
-                <path className="jeeva-stroke" d="M 95 15 L 95 88 M 95 15 L 125 15 M 95 51 L 118 51 M 95 88 L 125 88"
-                  stroke="white" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" style={{ opacity: 0 }} />
-                {/* V */}
-                <path className="jeeva-stroke" d="M 145 15 L 175 88 L 205 15"
-                  stroke="white" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" style={{ opacity: 0 }} />
-                {/* A */}
-                <path className="jeeva-stroke" d="M 225 88 L 255 15 L 285 88 M 235 62 L 275 62"
-                  stroke="white" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" style={{ opacity: 0 }} />
-                {/* Apostrophe ' */}
-                <path className="jeeva-stroke" d="M 298 15 L 294 32"
-                  stroke="white" strokeWidth="6" strokeLinecap="round" fill="none" style={{ opacity: 0 }} />
-                {/* S */}
-                <path className="jeeva-stroke" d="M 345 25 Q 315 15 315 38 Q 315 55 345 62 Q 345 88 315 88"
-                  stroke="white" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" style={{ opacity: 0 }} />
-              </svg>
-
-              {/* Portfolio caption */}
-              <p
-                ref={captionRef}
-                style={{
-                  opacity: 0,
-                  fontFamily: "'Space Grotesk', sans-serif",
-                  fontSize: "clamp(0.65rem, 1.5vw, 0.9rem)",
-                  letterSpacing: "0.45em",
-                  fontWeight: 600,
-                  color: "rgba(255,255,255,0.45)",
-                  textTransform: "uppercase",
-                  textAlign: "center",
-                }}
-              >
-                Jeeva's Portfolio &nbsp;·&nbsp; Full-Stack &amp; Systems Engineer
-              </p>
-            </div>
-          )}
-
-          {/* Corner labels */}
-          <div className="absolute bottom-8 right-8 text-white/20 text-xs font-medium tracking-widest uppercase font-mono">
-            Portfolio — {new Date().getFullYear()}
-          </div>
-          <div className="absolute bottom-8 left-8 text-white/20 text-xs font-medium tracking-widest uppercase font-mono">
-            {progress < 100 ? "Loading..." : "Entering..."}
-          </div>
-        </>
-      )}
-    </div>
-  );
+  return <Skiper8Preloader onComplete={onComplete} />;
 }
 
 // ─── Utility: Number counter animation ───────────────────
@@ -289,11 +100,11 @@ export default function Home() {
   const [sending, setSending] = useState(false);
   const [sentSuccess, setSentSuccess] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
   const [statsVisible, setStatsVisible] = useState(false);
   const [skillsVisible, setSkillsVisible] = useState(false);
   const [githubStats, setGithubStats] = useState<any>(null);
   const [leetcodeStats, setLeetcodeStats] = useState<any>(null);
+  const [activeCategoryIdx, setActiveCategoryIdx] = useState(0);
 
   const cursorRef = useRef<HTMLDivElement>(null);
   const followerRef = useRef<HTMLDivElement>(null);
@@ -311,22 +122,20 @@ export default function Home() {
           fetch("/api/achievements"), fetch("/api/certifications"), fetch("/api/resume"),
         ]);
         const abData = abRes.ok ? await abRes.json() : null;
-        if (abData) {
-          setAbout(abData);
-          // Fetch live GitHub + LeetCode stats
-          if (abData.githubUsername) {
-            fetch(`/api/github-stats?username=${abData.githubUsername}`)
-              .then(r => r.ok ? r.json() : null)
-              .then(d => d && setGithubStats(d))
-              .catch(() => null);
-          }
-          if (abData.leetcodeUsername) {
-            fetch(`/api/leetcode-stats?username=${abData.leetcodeUsername}`)
-              .then(r => r.ok ? r.json() : null)
-              .then(d => d && setLeetcodeStats(d))
-              .catch(() => null);
-          }
-        }
+        if (abData) setAbout(abData);
+
+        const ghUser = abData?.githubUsername || "M-Jeevanantham";
+        const lcUser = abData?.leetcodeUsername || "M-Jeevanantham";
+
+        fetch(`/api/github-stats?username=${ghUser}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => d && setGithubStats(d))
+          .catch(() => null);
+
+        fetch(`/api/leetcode-stats?username=${lcUser}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => d && setLeetcodeStats(d))
+          .catch(() => null);
         if (pRes.ok) setProjects(await pRes.json());
         if (sRes.ok) setSkills(await sRes.json());
         if (eRes.ok) setExperience(await eRes.json());
@@ -376,12 +185,7 @@ export default function Home() {
     return () => { window.removeEventListener("mousemove", move); cancelAnimationFrame(rafId); };
   }, [isReady]);
 
-  // ─── Lenis Scroll Listener ─────────────────────────────
-  useLenis(({ scroll }) => {
-    setScrollY(scroll);
-  });
-
-  // ─── Interactive Effects (Spotlight, 3D Tilt, Magnetic, Cursor Labels) ───
+// ─── Interactive Effects (Spotlight, 3D Tilt, Magnetic, Cursor Labels) ───
   useEffect(() => {
     if (!isReady) return;
     const cleanupFns: Array<() => void> = [];
@@ -489,28 +293,24 @@ export default function Home() {
 
       // ── HERO: Camera Zoom-In Entrance + Char Stagger ───────────
       gsap.fromTo("#hero-zoom-container",
-        { scale: 1.15, filter: "blur(10px)" },
-        { scale: 1.0, filter: "blur(0px)", duration: 1.2, ease: "power4.out", clearProps: "filter,transform" }
+        { scale: 1.05, opacity: 1 },
+        { scale: 1.0, opacity: 1, duration: 1.0, ease: "power3.out", clearProps: "transform" }
       );
       gsap.fromTo(".hero-char",
-        { opacity: 0, y: 80, rotateX: -80 },
-        { opacity: 1, y: 0, rotateX: 0, duration: 1.0, ease: "back.out(1.5)", stagger: 0.03, delay: 0.1 }
+        { opacity: 0, y: 40 },
+        { opacity: 1, y: 0, duration: 0.8, ease: "power3.out", stagger: 0.02, delay: 0.1, clearProps: "opacity,transform" }
       );
       gsap.fromTo(".hero-fade",
-        { opacity: 0, y: 30, scale: 0.96 },
-        { opacity: 1, y: 0, scale: 1.0, duration: 1.0, ease: "power3.out", stagger: 0.14, delay: 0.6 }
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.8, ease: "power3.out", stagger: 0.1, delay: 0.4, clearProps: "opacity,transform" }
       );
       // Parallax on hero content
       gsap.to(".hero-content", {
-        y: 150,
+        y: 120,
         ease: "none",
-        scrollTrigger: { trigger: "#hero", start: "top top", end: "bottom top", scrub: 1.5 }
+        scrollTrigger: { trigger: "#hero", start: "top top", end: "bottom top", scrub: 1 }
       });
-      // Hero opacity fade out on scroll
-      gsap.to("#hero", {
-        opacity: 0,
-        scrollTrigger: { trigger: "#hero", start: "60% top", end: "bottom top", scrub: true }
-      });
+
 
       // ── ABOUT: Clip-path horizontal wipe ────────────────
       if (document.querySelector(".about-num")) {
@@ -574,23 +374,25 @@ export default function Home() {
         );
       });
 
-      // ── SKILLS: Smooth Scroll Reveal (Unpinned to avoid scroll lag) ──
-      if (document.querySelector(".skills-title")) {
-        gsap.fromTo(".skills-title",
-          { opacity: 0, y: 30 },
-          { opacity: 1, y: 0, duration: 0.8, ease: "power3.out",
-            scrollTrigger: { trigger: "#skills", start: "top 85%" } }
-        );
-      }
-      document.querySelectorAll<HTMLElement>(".skill-card").forEach((card, i) => {
-        gsap.fromTo(card,
-          { opacity: 0, y: 35 },
-          { opacity: 1, y: 0, duration: 0.7, ease: "power3.out",
-            delay: (i % 4) * 0.1,
-            scrollTrigger: { trigger: card, start: "top 90%", toggleActions: "play none none none" }
+      // ── SKILLS: Ultra-Smooth Bottom-to-Top Scroll Move Animation ──
+      const skillsSection = document.querySelector("#skills");
+      if (skillsSection) {
+        gsap.fromTo(skillsSection,
+          { opacity: 0, y: 120, scale: 0.96 },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1.0,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: "#skills",
+              start: "top 85%",
+              end: "top 25%",
+              scrub: 1.2,
+            }
           }
         );
-      });
+      }
       // Skills progress bars
       if (skillsRef.current) {
         ScrollTrigger.create({
@@ -761,7 +563,7 @@ export default function Home() {
       <div ref={followerRef} className="cursor-follower" />
       <div className="scanline" />
 
-      <div id="hero-zoom-container" className={`custom-cursor-active relative bg-black text-white min-h-screen overflow-x-hidden transition-opacity duration-700 ${isReady ? "opacity-100" : "opacity-0"}`}
+      <div id="hero-zoom-container" className={`custom-cursor-active relative bg-black text-white min-h-screen overflow-x-clip transition-opacity duration-700 ${isReady ? "opacity-100" : "opacity-0"}`}
         style={{ fontFamily: "'Inter', sans-serif" }}>
 
         {/* Nav bar removed by request for 100% pure scroll interaction */}
@@ -770,54 +572,47 @@ export default function Home() {
             §1 HERO — Cosmic Violet / Blue Aura
         ══════════════════════════════════════════════════════ */}
         <section id="hero" className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
-          {/* Ghost watermark */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden select-none">
-            <span style={{ fontSize: "clamp(8rem, 30vw, 28rem)", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, color: "rgba(255,255,255,0.025)", letterSpacing: "-0.05em", lineHeight: 1 }}>
-              SDE
-            </span>
-          </div>
-
           <div className="hero-content relative z-10 text-center px-6 max-w-6xl mx-auto">
             <div className="hero-fade mb-8 inline-flex items-center gap-3">
-              <span className="block w-8 h-px bg-white/40" />
-              <span className="text-white/70 text-[10px] font-semibold tracking-[0.35em] uppercase">
+              <span className="block w-8 h-px bg-white/25" />
+              <span className="text-zinc-400 text-[10px] font-semibold tracking-[0.35em] uppercase">
                 {about?.title || "Software Development Engineer"}
               </span>
-              <span className="block w-8 h-px bg-white/40" />
+              <span className="block w-8 h-px bg-white/25" />
             </div>
 
             <h1 style={{ fontSize: "clamp(3rem, 10vw, 9rem)", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 0.92, fontFamily: "'Space Grotesk', sans-serif", perspective: "600px" }}
-              className="mb-6 text-white drop-shadow-[0_0_35px_rgba(255,255,255,0.15)]">
+              className="mb-6 text-zinc-100">
               {["Full\u2011Stack", " ", "& Systems"].map((word, wi) => (
                 <span key={wi} className="inline-block overflow-hidden">
                   {word === " " ? "\u00A0" : word.split("").map((char, ci) => (
-                    <span key={ci} className="hero-char inline-block text-white">{char === " " ? "\u00A0" : char}</span>
+                    <span key={ci} className="hero-char inline-block text-zinc-200/90">{char === " " ? "\u00A0" : char}</span>
                   ))}
                   {wi < 2 && <br />}
                 </span>
               ))}
             </h1>
 
-            <p className="hero-fade text-white/70 max-w-xl mx-auto text-base md:text-lg font-normal leading-relaxed mb-12 line-clamp-2">
+            <p className="hero-fade text-zinc-400 max-w-xl mx-auto text-base md:text-lg font-normal leading-relaxed mb-12 line-clamp-2">
               {about?.bio || "Architecting resilient backend systems and modern web experiences."}
             </p>
 
             <div className="hero-fade flex flex-wrap items-center justify-center gap-4">
               <button onClick={() => scrollToSection("#contact")} data-magnetic data-magnetic-strength="0.4"
-                className="px-8 py-3.5 bg-white text-black text-sm font-bold rounded-full hover:bg-white/90 active:scale-95 transition-all flex items-center gap-2">
+                className="px-8 py-3.5 bg-zinc-100 text-black text-sm font-bold rounded-full hover:bg-white active:scale-95 transition-all flex items-center gap-2">
                 Get in touch <ArrowUpRight className="w-4 h-4" />
               </button>
               {resume && (
                 <a href={resume.fileUrl} download={resume.fileName} target="_blank" rel="noreferrer" data-magnetic data-magnetic-strength="0.4"
-                  className="px-8 py-3.5 border border-white/20 text-white/60 hover:text-white hover:border-white/50 text-sm font-medium rounded-full transition-all flex items-center gap-2">
+                  className="px-8 py-3.5 border border-white/15 text-zinc-400 hover:text-zinc-200 hover:border-white/40 text-sm font-medium rounded-full transition-all flex items-center gap-2">
                   <Download className="w-4 h-4" /> Resume
                 </a>
               )}
             </div>
 
             <div className="hero-fade mt-20 flex flex-col items-center gap-3">
-              <span className="text-white/15 text-[10px] tracking-[0.3em] uppercase">Scroll</span>
-              <ChevronDown className="w-4 h-4 text-white/15 animate-bounce" />
+              <span className="text-zinc-600 text-[10px] tracking-[0.3em] uppercase">Scroll</span>
+              <ChevronDown className="w-4 h-4 text-zinc-600 animate-bounce" />
             </div>
           </div>
         </section>
@@ -846,57 +641,47 @@ export default function Home() {
             {/* Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-start">
               {/* Photo */}
-              <div data-tilt data-spotlight className="lg:col-span-5 relative w-full aspect-square md:aspect-[4/5] lg:aspect-auto lg:h-[600px] rounded-2xl overflow-hidden grayscale hover:grayscale-0 transition-all duration-700 border border-white/10 group">
+              <div data-tilt data-spotlight className="lg:col-span-5 relative w-full aspect-square md:aspect-[4/5] lg:aspect-auto lg:h-[540px] rounded-3xl overflow-hidden grayscale hover:grayscale-0 transition-all duration-700 border border-white/20 shadow-2xl group bg-[#0d0d14]">
                 <img 
-                  src="/profile.jpg" 
-                  alt="Profile" 
+                  src={(about?.avatarUrl && about.avatarUrl.trim() !== "") ? about.avatarUrl : "/profile Image.jpeg"} 
+                  alt="Jeevanantham M" 
                   className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000"
-                  onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=800&auto=format&fit=crop' }} 
+                  onError={(e) => { 
+                    e.currentTarget.src = "/profile Image.jpeg"; 
+                  }} 
                 />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-700 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-30 transition-opacity duration-700 pointer-events-none" />
+                <div className="absolute bottom-6 left-6 right-6 p-4 bg-black/60 backdrop-blur-md rounded-2xl border border-white/10 font-mono text-xs text-white/80">
+                  <p className="font-bold text-white">Jeevanantham M</p>
+                  <p className="text-white/50 text-[11px]">Software Development Engineer</p>
+                </div>
               </div>
 
               {/* Bio & Details */}
-              <div className="lg:col-span-7 space-y-10 lg:pt-4">
-                <p className="about-text text-white/60 leading-relaxed text-base md:text-lg font-light">
-                  {about?.bio || "I'm a Software Development Engineer passionate about building high-performance, fault-tolerant backend architectures and modern web applications."}
+              <div className="lg:col-span-7 space-y-8 lg:pt-2">
+                <p className="about-text text-white/80 leading-relaxed text-base md:text-lg font-normal whitespace-pre-line">
+                  {(about?.bio || `I’m Jeevanantham M — a Software Development Engineer & Full-Stack Systems Builder.
+
+I specialize in building scalable web applications, robust REST APIs, high-performance microservices, and modern user interfaces.
+
+ Full-Stack Architecture: Experienced in Next.js, React, Node.js, Express, TypeScript, PostgreSQL, and Tailwind CSS.
+ Product Engineering: Passionate about clean code, smooth animations, database optimizations, and seamless user experiences.
+ Systems & Cloud: Skilled in building RESTful APIs, authentication workflows, CI/CD pipelines, and microservice architectures.`)
+                    .replace(/[🏛🏛️]/g, "")
+                    .replace(/Technical Leadership & Architecture:/g, " Technical Leadership & Architecture:")
+                  }
                 </p>
                 <div className="about-line h-px bg-white/15 w-full" style={{ transformOrigin: "left" }} />
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                  {about?.location && (
-                    <div className="flex items-start gap-4">
-                      <MapPin className="w-5 h-5 text-white/25 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="text-white/25 text-[10px] uppercase tracking-widest mb-1.5">Location</p>
-                        <p className="text-white/70 text-sm">{about.location}</p>
-                      </div>
-                    </div>
-                  )}
-                  {about?.email && (
-                    <div className="flex items-start gap-4">
-                      <Mail className="w-5 h-5 text-white/25 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="text-white/25 text-[10px] uppercase tracking-widest mb-1.5">Email</p>
-                        <a href={`mailto:${about.email}`} className="text-white/70 text-sm hover:text-white link-underline">{about.email}</a>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="about-links flex flex-wrap gap-4 pt-4">
-                  {about?.githubUsername && (
-                    <a href={`https://github.com/${about.githubUsername}`} target="_blank" rel="noreferrer"
-                      className="flex items-center gap-2 text-xs font-medium text-white/50 hover:text-white border border-white/10 hover:border-white/30 px-5 py-3 rounded-full transition-all">
-                      <GitBranch className="w-4 h-4" /> GitHub
-                    </a>
-                  )}
-                  {about?.leetcodeUsername && (
-                    <a href={`https://leetcode.com/${about.leetcodeUsername}`} target="_blank" rel="noreferrer"
-                      className="flex items-center gap-2 text-xs font-medium text-white/50 hover:text-white border border-white/10 hover:border-white/30 px-5 py-3 rounded-full transition-all">
-                      <Trophy className="w-4 h-4" /> LeetCode
-                    </a>
-                  )}
+                <div className="about-links flex flex-wrap gap-4 pt-2">
+                  <a href={`https://github.com/${about?.githubUsername || "M-Jeevanantham"}`} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-2 text-xs font-medium text-white/70 hover:text-white border border-white/20 hover:border-white/40 px-5 py-3 rounded-full bg-white/[0.04] transition-all">
+                    <GitBranch className="w-4 h-4 text-purple-400" /> GitHub Profile
+                  </a>
+                  <a href={`https://leetcode.com/${about?.leetcodeUsername || "M-Jeevanantham"}`} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-2 text-xs font-medium text-white/70 hover:text-white border border-white/20 hover:border-white/40 px-5 py-3 rounded-full bg-white/[0.04] transition-all">
+                    <Trophy className="w-4 h-4 text-yellow-400" /> LeetCode Profile
+                  </a>
                 </div>
               </div>
             </div>
@@ -1019,104 +804,33 @@ export default function Home() {
         </section>
 
         {/* ═══════════════════════════════════════════════════
-            §4 SKILLS — Pinned Step-by-Step Category Showcase
+            §4 SKILLS — Skiper UI 7-Logo Big Text Reveal Matrix
         ══════════════════════════════════════════════════════ */}
-        <section id="skills" className="h-screen border-t border-white/5 flex flex-col justify-center items-center relative overflow-hidden px-6 py-4">
-          <div className="max-w-4xl mx-auto w-full my-auto flex flex-col justify-center">
+        <section id="skills" className="py-24 px-6 border-t border-white/5 relative overflow-hidden flex flex-col items-center justify-center">
+          <div className="max-w-6xl mx-auto w-full space-y-8">
             {/* Header */}
-            <div className="skills-title flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-3">
-              <div>
-                <div className="inline-flex items-center gap-3 mb-1">
-                  <span className="block w-6 h-px bg-white/30" />
-                  <span className="text-white/30 text-[10px] font-semibold tracking-[0.3em] uppercase">03</span>
-                </div>
-                <h2 style={{ fontSize: "clamp(2rem, 4vw, 3.5rem)", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, letterSpacing: "-0.03em" }}>
-                  Skills Matrix
-                </h2>
+            <div className="skills-title flex flex-col items-center text-center space-y-3">
+              <div className="inline-flex items-center gap-3">
+                <span className="block w-6 h-px bg-white/30" />
+                <span className="text-white/40 text-[11px] font-semibold tracking-[0.3em] uppercase">03</span>
+                <span className="block w-6 h-px bg-white/30" />
               </div>
-              <div className="flex items-center gap-2 text-white/40 text-xs font-mono tracking-widest uppercase border border-white/10 px-3.5 py-1.5 rounded-full w-fit">
-                <Compass className="w-3.5 h-3.5 animate-spin-slow text-white/70" /> Scroll to reveal each domain ↓
-              </div>
+              <h2 style={{ fontSize: "clamp(2.5rem, 5vw, 4rem)", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, letterSpacing: "-0.03em" }}>
+                Skills Matrix
+              </h2>
             </div>
 
-            {Object.keys(skillsByCategory).length === 0 ? <EmptyState text="Configure skills in Admin Panel." /> : (
-              /* Stacked Category Viewport */
-              <div className="relative h-[380px] md:h-[420px] w-full flex items-center justify-center">
-                {Object.entries(skillsByCategory).map(([category, items], i) => (
-                  <div key={category}
-                    className="skill-card absolute inset-0 flex flex-col justify-between bg-[#0a0a0a] border border-white/12 rounded-3xl p-8 md:p-12 transition-all shadow-[0_20px_50px_rgba(0,0,0,0.8)] cursor-default overflow-hidden"
-                    style={{ willChange: "transform, opacity, filter" }}>
-                    
-                    {/* Ghost Domain Number */}
-                    <div className="text-white/[0.035] text-[9rem] md:text-[13rem] font-black absolute bottom-[-3rem] right-4 leading-none select-none pointer-events-none"
-                      style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                      0{i + 1}
-                    </div>
-
-                    <div className="relative z-10">
-                      {/* Top bar */}
-                      <div className="flex items-center justify-between gap-4 mb-6">
-                        <span className="text-white/40 text-xs font-mono tracking-widest uppercase border border-white/15 px-3.5 py-1.5 rounded-full bg-white/[0.03]">
-                          DOMAIN 0{i + 1} OF 0{Object.keys(skillsByCategory).length}
-                        </span>
-                        <span className="text-white/80 font-mono text-xs border border-white/15 px-3 py-1.5 rounded-full bg-white/[0.04]">
-                          {items.length} Tech Stack Items
-                        </span>
-                      </div>
-
-                      {/* Domain Title */}
-                      <h3 className="text-white font-black text-3xl md:text-5xl mb-6 uppercase tracking-wider"
-                        style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                        {category}
-                      </h3>
-
-                      {/* Skill Badges */}
-                      <div className="flex flex-wrap gap-3 max-w-2xl">
-                        {(items as Skill[]).map((skill) => (
-                          <span
-                            key={skill.id}
-                            className="skill-badge px-4 py-2.5 bg-white/[0.04] border border-white/10 hover:border-white/30 hover:bg-white/[0.1] rounded-xl text-white text-sm font-semibold transition-all cursor-default inline-flex items-center gap-2 shadow-sm"
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            {skill.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Step indicator dots at bottom */}
-                    <div className="relative z-10 flex items-center justify-between border-t border-white/8 pt-6 mt-8">
-                      <span className="text-white/30 text-xs font-mono uppercase tracking-widest">Tech Domain</span>
-                      <div className="flex items-center gap-2">
-                        {Object.keys(skillsByCategory).map((_, idx) => (
-                          <div key={idx} className={`w-2.5 h-2.5 rounded-full transition-all ${idx === i ? "bg-white scale-125 shadow-[0_0_10px_#fff]" : "bg-white/15"}`} />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Infinite marquee */}
-            {skills.length > 0 && (
-              <div className="mt-12 overflow-hidden border-t border-b border-white/5 py-4">
-                <div className="marquee-track">
-                  {[...skills, ...skills].map((skill, i) => (
-                    <span key={i} className="text-white/10 text-xs font-black uppercase tracking-[0.25em] mx-8 flex-shrink-0">{skill.name}</span>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Skiper UI 7-Logo Big Text Reveal connected to Backend Database */}
+            <SkiperSkillsMatrix skills={skills} />
           </div>
         </section>
 
         {/* ═══════════════════════════════════════════════════
-            §5 EXPERIENCE — Bento Spotlight Cards
+            §5 EXPERIENCE — Skiper80 Interactive Experience Showcase
         ══════════════════════════════════════════════════════ */}
         <section id="experience" className="py-32 px-6 border-t border-white/5">
           <div className="max-w-7xl mx-auto">
-            <div className="exp-title flex items-end justify-between mb-20">
+            <div className="exp-title flex items-end justify-between mb-12">
               <div>
                 <div className="inline-flex items-center gap-3 mb-4">
                   <span className="block w-6 h-px bg-white/30" />
@@ -1126,72 +840,13 @@ export default function Home() {
                   Experience
                 </h2>
               </div>
-              <p className="hidden lg:block text-white/20 text-sm">Work history</p>
+              <p className="hidden lg:block text-white/40 text-xs font-mono uppercase tracking-widest border border-white/10 px-4 py-2 rounded-full">
+                Skiper80 Interactive Showcase ✦
+              </p>
             </div>
 
-            {experience.length === 0 ? <EmptyState text="Add work experience via Admin Panel." /> : (
-              <div className="space-y-6">
-                {experience.map((exp, i) => (
-                  <div key={exp.id} className="exp-item group" data-spotlight>
-                    {/* Outer container: left accent + card */}
-                    <div className="flex gap-0 items-stretch relative">
-
-                      {/* Left: Vertical index accent */}
-                      <div className="flex flex-col items-center flex-shrink-0 w-14 pt-8">
-                        <span className="text-white/[0.07] font-black text-4xl select-none" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                          {String(i + 1).padStart(2, "0")}
-                        </span>
-                        {i < experience.length - 1 && (
-                          <div className="flex-1 w-px bg-white/8 mt-4" />
-                        )}
-                      </div>
-
-                      {/* Card */}
-                      <div className="flex-1 border border-white/10 hover:border-white/22 rounded-2xl overflow-hidden transition-all duration-500 group-hover:shadow-[0_0_40px_rgba(255,255,255,0.04)]">
-                        {/* Top banner: role + period pill */}
-                        <div className="flex items-center justify-between px-8 pt-7 pb-0 gap-4 flex-wrap">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
-                              <Building className="w-4 h-4 text-white/40" />
-                            </div>
-                            <div>
-                              <h3 className="text-white font-bold text-xl leading-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                                {exp.role}
-                              </h3>
-                              <p className="text-white/50 text-sm font-medium">{exp.company}{exp.location ? ` · ${exp.location}` : ""}</p>
-                            </div>
-                          </div>
-                          <span className="flex-shrink-0 inline-flex items-center gap-1.5 text-white/35 text-xs font-mono border border-white/10 px-3.5 py-1.5 rounded-full bg-white/[0.02]">
-                            <Calendar className="w-3 h-3" /> {exp.period}
-                          </span>
-                        </div>
-
-                        {/* Body */}
-                        <div className="px-8 py-6">
-                          <p className="text-white/60 text-sm leading-relaxed">{exp.description}</p>
-
-                          {exp.skillsUsed && (
-                            <div className="flex flex-wrap gap-2 mt-5">
-                              {exp.skillsUsed.split(',').map((s: string, si: number) => (
-                                <span key={si} className="text-white/40 text-[11px] font-semibold uppercase tracking-wider border border-white/8 hover:border-white/20 hover:text-white/60 px-3 py-1.5 rounded-full transition-all cursor-default">
-                                  {s.trim()}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Bottom bar */}
-                        <div className="px-8 py-4 border-t border-white/5 flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          <span className="text-white/25 text-xs font-mono">COMPLETED</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Skiper80 Interactive Experience Showcase connected to Backend Database */}
+            <Skiper80ExperienceShowcase items={experience} />
           </div>
         </section>
 
@@ -1376,103 +1031,51 @@ export default function Home() {
         </section>
 
         {/* ═══════════════════════════════════════════════════
-            §7 PROJECTS — Horizontal Pinned Scroll Strip
+            §7 PROJECTS — Skiper17 GSAP Scroll Card Stack (Full Screen Sticky Stacking)
         ══════════════════════════════════════════════════════ */}
-        <section id="projects" className="border-t border-white/5 overflow-hidden">
-          {/* Header — always visible above the pinned strip */}
-          <div className="px-6 pt-32 pb-16 max-w-7xl mx-auto">
-            <div className="proj-title flex items-end justify-between">
-              <div>
-                <div className="inline-flex items-center gap-3 mb-4">
-                  <span className="block w-6 h-px bg-white/30" />
-                  <span className="text-white/30 text-[10px] font-semibold tracking-[0.3em] uppercase">06</span>
-                </div>
-                <h2 style={{ fontSize: "clamp(2.2rem, 5vw, 4rem)", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, letterSpacing: "-0.03em" }}>
-                  Projects
-                </h2>
-              </div>
-              <p className="hidden lg:block text-white/20 text-sm tracking-wide">Scroll to explore →</p>
-            </div>
-          </div>
-
-          {projects.length === 0 ? (
-            <div className="px-6 pb-32"><EmptyState text="Add projects via the Admin Panel." /></div>
-          ) : (
-            /* Horizontal scroll track — GSAP pins this section & translates X */
-            <div className="flex items-stretch projects-h-track" style={{ willChange: "transform" }}>
-              {projects.map((project, i) => (
-                <div key={project.id} data-spotlight
-                  className="proj-card flex-shrink-0 w-[min(88vw,500px)] mr-5 last:mr-0"
-                  style={{ paddingBottom: "5rem" }}>
-                  <div className="h-full bg-[#0a0a0a] border border-white/8 hover:border-white/22 rounded-2xl flex flex-col transition-all duration-300 group relative overflow-hidden">
-                    {/* Project image — data-cursor="VIEW" scoped strictly to image area */}
-                    {project.imageUrl ? (
-                      <div className="relative w-full h-48 overflow-hidden flex-shrink-0" data-cursor="VIEW">
-                        <img src={project.imageUrl} alt={project.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                        <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/60" />
-                        {project.featured && (
-                          <span className="absolute top-3 right-3 text-white/80 text-[9px] font-bold tracking-widest uppercase bg-black/60 backdrop-blur border border-white/20 px-2 py-0.5 rounded">
-                            Featured
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="relative w-full h-48 bg-white/[0.02] flex items-center justify-center flex-shrink-0 border-b border-white/5" data-cursor="VIEW">
-                        <span className="text-white/[0.06] font-black select-none" style={{ fontSize: "6rem", fontFamily: "'Space Grotesk', sans-serif", lineHeight: 1 }}>
-                          {String(i + 1).padStart(2, "0")}
-                        </span>
-                        {project.featured && (
-                          <span className="absolute top-3 right-3 text-white/40 text-[9px] font-bold tracking-widest uppercase border border-white/12 px-2 py-0.5 rounded">
-                            Featured
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex flex-col flex-1 p-7">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="text-white/20 text-xs font-mono">{String(i + 1).padStart(2, "0")}</span>
-                      </div>
-                      <h3 className="text-white font-bold text-2xl mb-2 group-hover:text-white/80 transition-colors"
-                        style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{project.title}</h3>
-                      <p className="text-white/45 text-sm leading-relaxed mb-5 flex-1">{project.description}</p>
-                      <div className="flex flex-wrap gap-2 mb-6">
-                        {project.techStack.split(",").map((tech, ti) => (
-                          <span key={ti} className="text-white/30 text-[10px] font-semibold uppercase tracking-wider border border-white/8 hover:border-white/20 px-2.5 py-1 rounded-full transition-colors">
-                            {tech.trim()}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="flex gap-3 border-t border-white/5 pt-5">
-                        {project.liveUrl && (
-                          <a href={project.liveUrl} target="_blank" rel="noreferrer"
-                            className="flex items-center gap-2 text-xs font-medium text-white/40 hover:text-white border border-white/10 hover:border-white/40 px-4 py-2.5 rounded-full transition-all">
-                            <Globe className="w-3.5 h-3.5" /> Live
-                          </a>
-                        )}
-                        {project.githubUrl && (
-                          <a href={project.githubUrl} target="_blank" rel="noreferrer"
-                            className="flex items-center gap-2 text-xs font-medium text-white/40 hover:text-white border border-white/10 hover:border-white/40 px-4 py-2.5 rounded-full transition-all">
-                            <Code2 className="w-3.5 h-3.5" /> Source
-                          </a>
-                        )}
-                      </div>
-                    </div>
+        <section id="projects" className="pt-16 px-4 sm:px-8 md:px-12 border-t border-white/5 relative w-full">
+          <div className="w-full">
+            {/* Header */}
+            <div className="pb-12 w-full">
+              <div className="proj-title flex items-end justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-3 mb-4">
+                    <span className="block w-6 h-px bg-white/30" />
+                    <span className="text-white/30 text-[10px] font-semibold tracking-[0.3em] uppercase">06</span>
                   </div>
+                  <h2 style={{ fontSize: "clamp(2.5rem, 5vw, 4.5rem)", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, letterSpacing: "-0.03em" }}>
+                    Projects
+                  </h2>
                 </div>
-              ))}
-              {/* Right spacer */}
-              <div className="flex-shrink-0 w-16" />
+                <p className="hidden lg:block text-white/40 text-xs font-mono uppercase tracking-widest border border-white/10 px-4 py-2 rounded-full">
+                  Skiper17 GSAP Scroll Stack ✦
+                </p>
+              </div>
             </div>
-          )}
+
+            {/* Skiper17 Card Stack connected to Backend Database */}
+            <Skiper17ProjectCardStack
+              projects={projects.map((p) => ({
+                id: p.id,
+                title: p.title,
+                category: p.techStack ? p.techStack.split(",")[0] : "Full-Stack Project",
+                description: p.description,
+                tags: p.techStack,
+                githubUrl: p.githubUrl,
+                liveUrl: p.liveUrl,
+                featured: p.featured,
+                image: p.imageUrl,
+              }))}
+            />
+          </div>
         </section>
 
         {/* ═══════════════════════════════════════════════════
             §8 CERTIFICATIONS — 3D Flip Showcase
         ══════════════════════════════════════════════════════ */}
-        <section id="certifications" className="py-32 px-6 border-t border-white/5">
+        <section id="certifications" className="py-24 px-6 border-t border-white/5 relative w-full">
           <div className="max-w-7xl mx-auto">
-            <div className="cert-title flex items-end justify-between mb-20">
+            <div className="cert-title flex items-end justify-between mb-12">
               <div>
                 <div className="inline-flex items-center gap-3 mb-4">
                   <span className="block w-6 h-px bg-white/30" />
@@ -1482,49 +1085,22 @@ export default function Home() {
                   Certifications
                 </h2>
               </div>
-              <p className="hidden lg:block text-white/20 text-sm">Hover to flip</p>
+              <p className="hidden lg:block text-white/40 text-xs font-mono uppercase tracking-widest border border-white/10 px-4 py-2 rounded-full">
+                Skiper52 3D Perspective Showcase ✦
+              </p>
             </div>
 
-            {certifications.length === 0 ? <EmptyState text="Add certifications via Admin Panel." /> : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" style={{ perspective: "1200px" }}>
-                {certifications.map((cert) => (
-                  <div key={cert.id} data-spotlight data-cursor="OPEN" className="cert-card flip-card h-64" style={{ transformStyle: "preserve-3d" }}>
-                    <div className="flip-card-inner">
-                      <div className="flip-card-front bg-[#0f0f0f] border border-white/8 p-0 flex flex-col justify-between overflow-hidden rounded-2xl">
-                        {cert.imageUrl ? (
-                          <div className="w-full h-36 relative overflow-hidden bg-black/40 border-b border-white/8">
-                            <img src={cert.imageUrl} alt={cert.title} className="w-full h-full object-cover" />
-                          </div>
-                        ) : (
-                          <div className="w-full h-24 p-6 flex items-center justify-between border-b border-white/5 bg-white/[0.02]">
-                            <Award className="w-6 h-6 text-emerald-400" />
-                          </div>
-                        )}
-                        <div className="p-6">
-                          <h3 className="text-white font-semibold text-sm leading-snug mb-1">{cert.title}</h3>
-                          <p className="text-white/30 text-xs font-mono">{cert.issuer} • {cert.issueDate}</p>
-                        </div>
-                      </div>
-                      <div className="flip-card-back bg-white p-6 flex flex-col justify-between rounded-2xl">
-                        <div>
-                          <h3 className="text-black font-bold text-sm leading-snug">{cert.title}</h3>
-                          <p className="text-black/60 text-xs font-medium mt-1">{cert.issuer}</p>
-                          <p className="text-black/40 text-[11px] font-mono mt-1">Issued: {cert.issueDate}</p>
-                        </div>
-                        {cert.credentialUrl ? (
-                          <a href={cert.credentialUrl} target="_blank" rel="noreferrer"
-                            className="inline-flex items-center justify-center gap-2 w-full py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-zinc-800 transition-colors">
-                            Verify Credential <ExternalLink className="w-3.5 h-3.5" />
-                          </a>
-                        ) : (
-                          <span className="text-black/30 text-[11px] font-mono">// Verified Credential</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <Skiper52Certifications
+              certifications={certifications.map((c) => ({
+                id: c.id,
+                title: c.title,
+                issuer: c.issuer,
+                issueDate: c.issueDate,
+                credentialId: c.credentialId,
+                credentialUrl: c.credentialUrl,
+                imageUrl: c.imageUrl,
+              }))}
+            />
           </div>
         </section>
 

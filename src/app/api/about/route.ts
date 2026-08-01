@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { title, bio, tagline, location, email, githubUsername, leetcodeUsername, linkedinUrl, instagramUrl } = body;
+    const { title, bio, tagline, location, email, githubUsername, leetcodeUsername, linkedinUrl, instagramUrl, avatarUrl } = body;
 
     await prisma.about.deleteMany();
 
@@ -33,6 +33,7 @@ export async function POST(req: Request) {
         leetcodeUsername: leetcodeUsername || null,
         linkedinUrl: linkedinUrl || null,
         instagramUrl: instagramUrl || null,
+        avatarUrl: avatarUrl || null,
       },
     });
 

@@ -43,7 +43,7 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   // Form states
-  const [aboutForm, setAboutForm] = useState({ title: "", bio: "", tagline: "", location: "", email: "", githubUsername: "", leetcodeUsername: "", linkedinUrl: "", instagramUrl: "" });
+  const [aboutForm, setAboutForm] = useState({ title: "", bio: "", tagline: "", location: "", email: "", githubUsername: "", leetcodeUsername: "", linkedinUrl: "", instagramUrl: "", avatarUrl: "" });
   const [newProject, setNewProject] = useState({ title: "", description: "", techStack: "", liveUrl: "", githubUrl: "", imageUrl: "", featured: false });
   const [newSkill, setNewSkill] = useState({ name: "", category: "Backend", proficiency: 85, icon: "⚡" });
   const [newExp, setNewExp] = useState({ company: "", role: "", period: "", location: "", description: "", skillsUsed: "" });
@@ -206,7 +206,7 @@ export default function AdminDashboardPage() {
       body: JSON.stringify(newCert),
     });
     if (res.ok) {
-      setNewCert({ title: "", issuer: "", issueDate: "", credentialId: "", credentialUrl: "" });
+      setNewCert({ title: "", issuer: "", issueDate: "", credentialId: "", credentialUrl: "", imageUrl: "" });
       fetchAllData();
     }
   };
@@ -333,6 +333,37 @@ export default function AdminDashboardPage() {
             </div>
 
             <form onSubmit={handleSaveAbout} className="space-y-6">
+              <div>
+                <label className="block text-xs font-mono text-zinc-300 uppercase tracking-wider mb-2 font-bold">Profile Photo / Avatar Image</label>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  {aboutForm.avatarUrl && (
+                    <img src={aboutForm.avatarUrl} alt="Avatar Preview" className="w-16 h-16 rounded-xl object-cover border border-white/20" />
+                  )}
+                  <div className="flex-1 space-y-2 w-full">
+                    <input
+                      type="text"
+                      value={aboutForm.avatarUrl || ""}
+                      onChange={(e) => setAboutForm({ ...aboutForm, avatarUrl: e.target.value })}
+                      placeholder="Image URL or upload file below"
+                      className="w-full bg-[#111116] border border-white/10 rounded-xl py-3 px-4 text-sm font-mono focus:border-white outline-none text-white"
+                    />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => setAboutForm({ ...aboutForm, avatarUrl: reader.result as string });
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full bg-[#111116] border border-white/10 rounded-xl p-2.5 text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-mono file:bg-white/10 file:text-white hover:file:bg-white/20"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-mono text-zinc-300 uppercase tracking-wider mb-2 font-bold">Headline / Main Title</label>
                 <input
