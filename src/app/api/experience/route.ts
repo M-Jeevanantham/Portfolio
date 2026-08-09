@@ -3,6 +3,9 @@ import { prisma, withDB } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const data = await withDB(() => prisma.experience.findMany({ orderBy: { order: "asc" } }));
