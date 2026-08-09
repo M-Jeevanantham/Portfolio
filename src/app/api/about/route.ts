@@ -16,9 +16,10 @@ export async function GET() {
   try {
     let about = await withDB(() => prisma.about.findFirst());
     if (about && (!about.title || about.title === "Software Development Engineer")) {
+      const aboutId = about.id;
       try {
         about = await withDB(() => prisma.about.update({
-          where: { id: about.id },
+          where: { id: aboutId },
           data: { title: "Software Developer & System Designer" },
         }));
       } catch (e) {
