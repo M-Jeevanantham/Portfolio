@@ -90,6 +90,63 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
+// ─── Typewriter Effect Component for About Bio ──────────
+function TypewriterBio({ text }: { text: string }) {
+  const [displayedLength, setDisplayedLength] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hasStarted, setHasStarted] = useState(false);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setHasStarted(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.15 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!hasStarted) return;
+
+    setDisplayedLength(0);
+    let current = 0;
+    const total = text.length;
+
+    const timer = setInterval(() => {
+      current += 2;
+      if (current >= total) {
+        setDisplayedLength(total);
+        clearInterval(timer);
+      } else {
+        setDisplayedLength(current);
+      }
+    }, 18);
+
+    return () => clearInterval(timer);
+  }, [text, hasStarted]);
+
+  const displayedText = text.slice(0, displayedLength);
+  const isTyping = hasStarted && displayedLength < text.length;
+
+  return (
+    <div ref={containerRef} className="relative inline">
+      <span className="whitespace-pre-line">{displayedText}</span>
+      {isTyping && (
+        <span className="inline-block w-[3px] h-[1.1em] ml-1 bg-white animate-pulse align-middle" />
+      )}
+    </div>
+  );
+}
+
 // ─── Education Card Inner Content ─────────────────────
 function EduCardInner({ edu, i }: { edu: Education; i: number }) {
   return (
@@ -759,18 +816,20 @@ export default function Home() {
 
               {/* Bio & Details */}
               <div className="lg:col-span-7 space-y-8 lg:pt-2">
-                <p className="about-text about-col-item text-white/80 leading-relaxed text-base md:text-lg font-normal whitespace-pre-line">
-                  {(about?.bio || `I'm Jeevanantham M — a Software Developer & System Designer.
+                <div className="about-text about-col-item text-white/80 leading-relaxed text-base md:text-lg font-normal">
+                  <TypewriterBio
+                    text={(about?.bio || `I'm Jeevanantham M — a Software Developer & System Designer.
 
 I specialize in building scalable web applications, robust REST APIs, high-performance microservices, and modern user interfaces.
 
  Full-Stack Architecture: Experienced in Next.js, React, Node.js, Express, TypeScript, PostgreSQL, and Tailwind CSS.
  Product Engineering: Passionate about clean code, smooth animations, database optimizations, and seamless user experiences.
  Systems & Cloud: Skilled in building RESTful APIs, authentication workflows, CI/CD pipelines, and microservice architectures.`)
-                    .replace(/[🏛🏛️]/g, "")
-                    .replace(/Technical Leadership & Architecture:/g, " Technical Leadership & Architecture:")
-                  }
-                </p>
+                      .replace(/[🏛🏛️]/g, "")
+                      .replace(/Technical Leadership & Architecture:/g, " Technical Leadership & Architecture:")
+                    }
+                  />
+                </div>
                 <div className="about-line about-col-item h-px bg-white/15 w-full" style={{ transformOrigin: "left" }} />
                 
                 <div className="about-links about-col-item flex flex-wrap gap-4 pt-2">

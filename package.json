@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node update-icon.js",
+    "prebuild": "node update-icon.js",
     "dev": "next dev",
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
