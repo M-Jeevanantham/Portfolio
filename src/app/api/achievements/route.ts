@@ -13,7 +13,7 @@ export async function GET() {
     }));
     return NextResponse.json(data);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch achievements" }, { status: 500 });
+    return NextResponse.json([]);
   }
 }
 

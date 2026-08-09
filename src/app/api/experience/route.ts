@@ -11,7 +11,7 @@ export async function GET() {
     const data = await withDB(() => prisma.experience.findMany({ orderBy: { order: "asc" } }));
     return NextResponse.json(data);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch experience" }, { status: 500 });
+    return NextResponse.json([]);
   }
 }
 

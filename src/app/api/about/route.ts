@@ -14,22 +14,16 @@ const NO_CACHE_HEADERS = {
 
 export async function GET() {
   try {
-    let about = await withDB(() => prisma.about.findFirst());
-    if (about && (!about.title || about.title === "Software Development Engineer")) {
-      const aboutId = about.id;
-      try {
-        about = await withDB(() => prisma.about.update({
-          where: { id: aboutId },
-          data: { title: "Software Developer & System Designer" },
-        }));
-      } catch (e) {
+    const about = await withDB(() => prisma.about.findFirst());
+    if (about) {
+      if (!about.title || about.title === "Software Development Engineer") {
         about.title = "Software Developer & System Designer";
       }
     }
     return NextResponse.json(about || null, { headers: NO_CACHE_HEADERS });
   } catch (error: any) {
     console.error("GET /api/about error:", error?.message);
-    return NextResponse.json({ error: "Failed to fetch about details" }, { status: 500, headers: NO_CACHE_HEADERS });
+    return NextResponse.json(null, { headers: NO_CACHE_HEADERS });
   }
 }
 

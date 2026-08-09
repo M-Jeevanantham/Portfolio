@@ -12,7 +12,7 @@ export async function GET() {
     }));
     return NextResponse.json(resume || null);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch resume" }, { status: 500 });
+    return NextResponse.json(null);
   }
 }
 

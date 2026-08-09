@@ -18,7 +18,7 @@ export async function GET() {
     }));
     return NextResponse.json(messages);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch messages" }, { status: 500 });
+    return NextResponse.json([]);
   }
 }
 

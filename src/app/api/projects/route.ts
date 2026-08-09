@@ -11,7 +11,7 @@ export async function GET() {
     const projects = await withDB(() => prisma.project.findMany({ orderBy: { createdAt: "desc" } }));
     return NextResponse.json(projects);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch projects" }, { status: 500 });
+    return NextResponse.json([]);
   }
 }
 

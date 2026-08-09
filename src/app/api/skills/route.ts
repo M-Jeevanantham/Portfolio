@@ -13,7 +13,7 @@ export async function GET() {
     }));
     return NextResponse.json(skills);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch skills" }, { status: 500 });
+    return NextResponse.json([]);
   }
 }
 
