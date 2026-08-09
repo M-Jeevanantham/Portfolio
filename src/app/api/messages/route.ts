@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, withDB } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 
@@ -10,9 +10,9 @@ export async function GET() {
   }
 
   try {
-    const messages = await prisma.message.findMany({
+    const messages = await withDB(() => prisma.message.findMany({
       orderBy: { createdAt: "desc" },
-    });
+    }));
     return NextResponse.json(messages);
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch messages" }, { status: 500 });
@@ -28,9 +28,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Name, email, and message are required" }, { status: 400 });
     }
 
-    const newMessage = await prisma.message.create({
+    const newMessage = await withDB(() => prisma.message.create({
       data: { name, email, message },
-    });
+    }));
 
     return NextResponse.json(newMessage, { status: 201 });
   } catch (error) {

@@ -1,7 +1,7 @@
 "use client";
 
+import React, { Fragment, useEffect, useRef, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
 
 import {
   Download, Send, ExternalLink, Code2, Globe,
@@ -40,6 +40,12 @@ const Instagram = ({ className = "w-4 h-4" }: { className?: string }) => (
     <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
     <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
     <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
+
+const Whatsapp = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
   </svg>
 );
 
@@ -84,6 +90,51 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
+// ─── Education Card Inner Content ─────────────────────
+function EduCardInner({ edu, i }: { edu: Education; i: number }) {
+  return (
+    <>
+      {/* Ghost large period number */}
+      <div className="absolute bottom-[-1.5rem] right-3 text-white/[0.04] font-black select-none pointer-events-none"
+        style={{ fontSize: "clamp(4rem, 8vw, 7rem)", fontFamily: "'Space Grotesk', sans-serif", lineHeight: 1 }}>
+        {edu.period?.split("–")[0]?.split("-")[0]?.trim() || String(i + 1).padStart(2, "0")}
+      </div>
+      {/* Period + Grade badges */}
+      <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+        <span className="inline-flex items-center gap-1.5 text-white/40 text-xs font-mono border border-white/10 px-3 py-1.5 rounded-full bg-white/[0.03]">
+          <Calendar className="w-3 h-3 text-white/50" /> {edu.period}
+        </span>
+        {edu.grade && (
+          <span className="text-white text-xs font-bold px-3 py-1.5 bg-white/10 border border-white/20 rounded-full">
+            {edu.grade}
+          </span>
+        )}
+      </div>
+      {/* Degree */}
+      <h3 className="text-white font-extrabold text-xl md:text-2xl mb-3 leading-tight group-hover:text-white/90 transition-colors"
+        style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        {edu.degree}
+      </h3>
+      {/* Institution */}
+      <p className="text-white/65 font-semibold text-sm mb-1 flex items-center gap-2">
+        <Building className="w-4 h-4 text-white/40 flex-shrink-0" /> {edu.institution}
+      </p>
+      {(edu as any).location && (
+        <p className="text-white/35 text-xs italic flex items-center gap-1 mb-4">
+          <MapPin className="w-3 h-3 text-white/35 flex-shrink-0" /> {(edu as any).location}
+        </p>
+      )}
+      {(edu as any).description && (
+        <div className="border-t border-white/8 pt-4 mt-4">
+          <p className="text-white/45 text-xs md:text-sm leading-relaxed">
+            {(edu as any).description}
+          </p>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ════════════════════════════════════════════════════════
 export default function Home() {
   const [about, setAbout] = useState<AboutData | null>(null);
@@ -116,23 +167,29 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const ts = Date.now();
         const [abRes, pRes, sRes, eRes, edRes, aRes, cRes, rRes] = await Promise.all([
-          fetch("/api/about"), fetch("/api/projects"), fetch("/api/skills"),
-          fetch("/api/experience"), fetch("/api/education"),
-          fetch("/api/achievements"), fetch("/api/certifications"), fetch("/api/resume"),
+          fetch(`/api/about?t=${ts}`, { cache: "no-store" }),
+          fetch(`/api/projects?t=${ts}`, { cache: "no-store" }),
+          fetch(`/api/skills?t=${ts}`, { cache: "no-store" }),
+          fetch(`/api/experience?t=${ts}`, { cache: "no-store" }),
+          fetch(`/api/education?t=${ts}`, { cache: "no-store" }),
+          fetch(`/api/achievements?t=${ts}`, { cache: "no-store" }),
+          fetch(`/api/certifications?t=${ts}`, { cache: "no-store" }),
+          fetch(`/api/resume?t=${ts}`, { cache: "no-store" }),
         ]);
         const abData = abRes.ok ? await abRes.json() : null;
         if (abData) setAbout(abData);
 
         const ghUser = abData?.githubUsername || "M-Jeevanantham";
-        const lcUser = abData?.leetcodeUsername || "M-Jeevanantham";
+        const lcUser = abData?.leetcodeUsername || "Jeeva_sadi";
 
-        fetch(`/api/github-stats?username=${ghUser}`)
+        fetch(`/api/github-stats?username=${encodeURIComponent(ghUser)}&t=${ts}`, { cache: "no-store" })
           .then((r) => (r.ok ? r.json() : null))
           .then((d) => d && setGithubStats(d))
           .catch(() => null);
 
-        fetch(`/api/leetcode-stats?username=${lcUser}`)
+        fetch(`/api/leetcode-stats?username=${encodeURIComponent(lcUser)}&t=${ts}`, { cache: "no-store" })
           .then((r) => (r.ok ? r.json() : null))
           .then((d) => d && setLeetcodeStats(d))
           .catch(() => null);
@@ -312,64 +369,103 @@ export default function Home() {
       });
 
 
-      // ── ABOUT: Clip-path horizontal wipe ────────────────
-      if (document.querySelector(".about-num")) {
-        gsap.fromTo(".about-num",
-          { opacity: 0, x: -100 },
-          { opacity: 1, x: 0, duration: 1.2, ease: "power4.out",
-            scrollTrigger: { trigger: "#about", start: "top 75%" } }
+      // ── ABOUT (WHO I AM): Scroll trigger animations ────
+      const aboutNumEl = document.querySelector(".about-num");
+      if (aboutNumEl) {
+        gsap.fromTo(aboutNumEl,
+          { opacity: 0, y: 50 },
+          { opacity: 1, y: 0, duration: 1, ease: "power3.out",
+            scrollTrigger: { trigger: "#about", start: "top 80%" } }
         );
       }
-      if (document.querySelector(".about-line")) {
-        gsap.fromTo(".about-line",
+      const aboutImgEl = document.querySelector(".about-img");
+      if (aboutImgEl) {
+        gsap.fromTo(aboutImgEl,
+          { opacity: 0, scale: 0.9, y: 50 },
+          { opacity: 1, scale: 1, y: 0, duration: 1.1, ease: "power3.out",
+            scrollTrigger: { trigger: aboutImgEl, start: "top 85%" } }
+        );
+      }
+      const aboutTextEl = document.querySelector(".about-text");
+      if (aboutTextEl) {
+        gsap.fromTo(aboutTextEl,
+          { opacity: 0, y: 35 },
+          { opacity: 1, y: 0, duration: 1, ease: "power3.out",
+            scrollTrigger: { trigger: aboutTextEl, start: "top 85%" } }
+        );
+      }
+      const aboutLineEl = document.querySelector(".about-line");
+      if (aboutLineEl) {
+        gsap.fromTo(aboutLineEl,
           { scaleX: 0 },
-          { scaleX: 1, duration: 1.4, ease: "power4.inOut", transformOrigin: "left",
-            scrollTrigger: { trigger: "#about", start: "top 70%" } }
+          { scaleX: 1, duration: 1.2, ease: "power4.inOut", transformOrigin: "left",
+            scrollTrigger: { trigger: aboutLineEl, start: "top 90%" } }
         );
       }
-      if (document.querySelector(".about-text")) {
-        gsap.fromTo(".about-text",
-          { clipPath: "inset(0 100% 0 0)", opacity: 0 },
-          { clipPath: "inset(0 0% 0 0)", opacity: 1, duration: 1.2, ease: "power4.inOut",
-            scrollTrigger: { trigger: "#about", start: "top 70%" } }
-        );
-      }
-      if (document.querySelector(".about-links")) {
-        const links = document.querySelectorAll(".about-links > *");
+      const aboutLinksEl = document.querySelector(".about-links");
+      if (aboutLinksEl) {
+        const links = aboutLinksEl.querySelectorAll(":scope > *");
         if (links.length > 0) {
           gsap.fromTo(links,
-            { opacity: 0, y: 20 },
-            { opacity: 1, y: 0, duration: 0.7, stagger: 0.1, ease: "power3.out",
-              scrollTrigger: { trigger: ".about-links", start: "top 85%" } }
+            { opacity: 0, y: 25 },
+            { opacity: 1, y: 0, duration: 0.7, stagger: 0.12, ease: "power3.out",
+              scrollTrigger: { trigger: aboutLinksEl, start: "top 90%" } }
           );
         }
       }
+      // About section: staggered right-column content reveal
+      const aboutColItems = document.querySelectorAll(".about-col-item");
+      if (aboutColItems.length > 0) {
+        gsap.fromTo(aboutColItems,
+          { opacity: 0, x: 40 },
+          { opacity: 1, x: 0, duration: 0.8, stagger: 0.15, ease: "power3.out",
+            scrollTrigger: { trigger: "#about", start: "top 75%" } }
+        );
+      }
 
-      // ── EDUCATION: Smooth Scroll Reveal ──
+      // ── EDUCATION: Centered Timeline with Alternating Cards + Glow Line on Scroll ──
       if (document.querySelector(".edu-title")) {
         gsap.fromTo(".edu-title",
-          { opacity: 0, y: 30 },
-          { opacity: 1, y: 0, duration: 0.8, ease: "power3.out",
+          { opacity: 0, y: 40 },
+          { opacity: 1, y: 0, duration: 1.4, ease: "power4.out",
             scrollTrigger: { trigger: "#education", start: "top 85%" } }
         );
       }
-      // Simple line reveal — no scrub to avoid jank
+      // Glow line draws from top to bottom tied to scroll progress
       const eduLine = document.querySelector<HTMLElement>(".edu-journey-line");
       if (eduLine) {
         gsap.fromTo(eduLine,
           { scaleY: 0 },
           {
-            scaleY: 1, duration: 1.5, ease: "power2.out",
-            scrollTrigger: { trigger: "#education", start: "top 80%" }
+            scaleY: 1,
+            ease: "none",
+            scrollTrigger: {
+              trigger: "#education",
+              start: "top 70%",
+              end: "bottom 80%",
+              scrub: 1.8,
+            }
           }
         );
+        // Extra glow pulse when in view
+        ScrollTrigger.create({
+          trigger: "#education",
+          start: "top 70%",
+          onEnter: () => {
+            gsap.to(eduLine, {
+              boxShadow: "0 0 20px 6px rgba(255,255,255,0.6), 0 0 45px 14px rgba(255,255,255,0.3)",
+              duration: 1.6, ease: "power3.out",
+            });
+          },
+        });
       }
+      // Alternating left/right card reveal — smooth slow duration & elegant power4 curve
       document.querySelectorAll<HTMLElement>(".edu-card").forEach((card, i) => {
+        const isRight = i % 2 === 1;
         gsap.fromTo(card,
-          { opacity: 0, y: 40 },
-          { opacity: 1, y: 0, duration: 0.7, ease: "power3.out",
-            delay: i * 0.12,
-            scrollTrigger: { trigger: card, start: "top 90%", toggleActions: "play none none none" }
+          { opacity: 0, x: isRight ? 100 : -100, scale: 0.94 },
+          { opacity: 1, x: 0, scale: 1, duration: 1.6, ease: "power4.out",
+            scrollTrigger: { trigger: card, start: "top 82%", toggleActions: "play none none none" }
           }
         );
       });
@@ -410,7 +506,7 @@ export default function Home() {
         });
       }
 
-      // ── EXPERIENCE: Scrollytelling Glowing Laser Timeline ───
+      // ── EXPERIENCE: Staggered entry reveal when section comes into view ───
       if (document.querySelector(".exp-title")) {
         gsap.fromTo(".exp-title",
           { opacity: 0, y: 40 },
@@ -418,21 +514,22 @@ export default function Home() {
             scrollTrigger: { trigger: "#experience", start: "top 80%" } }
         );
       }
+      // Stagger reveal the right-column role titles on section enter
+      // (items live in a sticky panel so per-item triggers don't apply)
       const expItems = document.querySelectorAll<HTMLElement>(".exp-item");
-      expItems.forEach((item, i) => {
-        gsap.fromTo(item,
-          { opacity: 0, x: -50, scale: 0.97 },
-          { opacity: 1, x: 0, scale: 1, duration: 0.85, ease: "power3.out",
-            scrollTrigger: { trigger: item, start: "top 85%", toggleActions: "play none none none" }
-          }
-        );
-      });
-      // Timeline line draw
-      if (document.querySelector(".timeline-vert")) {
-        gsap.fromTo(".timeline-vert",
-          { scaleY: 0 },
-          { scaleY: 1, duration: 2, ease: "power2.inOut", transformOrigin: "top",
-            scrollTrigger: { trigger: "#experience", start: "top 70%", end: "bottom 80%", scrub: true }
+      if (expItems.length > 0) {
+        gsap.fromTo(expItems,
+          { opacity: 0, x: 40, scale: 0.96 },
+          {
+            opacity: 1, x: 0, scale: 1,
+            duration: 0.7,
+            ease: "power3.out",
+            stagger: 0.12,
+            scrollTrigger: {
+              trigger: "#experience",
+              start: "top 75%",
+              toggleActions: "play none none none",
+            }
           }
         );
       }
@@ -573,23 +670,26 @@ export default function Home() {
         ══════════════════════════════════════════════════════ */}
         <section id="hero" className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
           <div className="hero-content relative z-10 text-center px-6 max-w-6xl mx-auto">
-            <div className="hero-fade mb-8 inline-flex items-center gap-3">
-              <span className="block w-8 h-px bg-white/25" />
-              <span className="text-zinc-400 text-[10px] font-semibold tracking-[0.35em] uppercase">
-                {about?.title || "Software Development Engineer"}
+            <div className="hero-fade mb-6 sm:mb-8 inline-flex items-center gap-2 sm:gap-3 max-w-full px-2">
+              <span className="block w-4 sm:w-8 h-px bg-white/25 flex-shrink-0" />
+              <span className="text-zinc-400 text-[9px] sm:text-[10px] font-semibold tracking-[0.2em] sm:tracking-[0.35em] uppercase truncate">
+                {about?.title || "Software Developer & System Designer"}
               </span>
-              <span className="block w-8 h-px bg-white/25" />
+              <span className="block w-4 sm:w-8 h-px bg-white/25 flex-shrink-0" />
             </div>
 
-            <h1 style={{ fontSize: "clamp(3rem, 10vw, 9rem)", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 0.92, fontFamily: "'Space Grotesk', sans-serif", perspective: "600px" }}
+            <h1 style={{ fontSize: "clamp(1.6rem, 5.5vw, 6.2rem)", fontWeight: 900, letterSpacing: "-0.03em", lineHeight: 1.05, fontFamily: "'Space Grotesk', sans-serif", perspective: "600px" }}
               className="mb-6 text-zinc-100">
-              {["Full\u2011Stack", " ", "& Systems"].map((word, wi) => (
-                <span key={wi} className="inline-block overflow-hidden">
-                  {word === " " ? "\u00A0" : word.split("").map((char, ci) => (
-                    <span key={ci} className="hero-char inline-block text-zinc-200/90">{char === " " ? "\u00A0" : char}</span>
-                  ))}
-                  {wi < 2 && <br />}
-                </span>
+              {["Software", " ", "Developer", " ", "& System Designer"].map((word, wi) => (
+                <React.Fragment key={wi}>
+                  <span className="inline-block overflow-hidden whitespace-nowrap">
+                    {word === " " ? "\u00A0" : word.split("").map((char, ci) => (
+                      <span key={ci} className="hero-char inline-block text-zinc-200/90">{char === " " ? "\u00A0" : char}</span>
+                    ))}
+                  </span>
+                  {wi === 0 && <br className="block sm:hidden" />}
+                  {wi === 2 && <br />}
+                </React.Fragment>
               ))}
             </h1>
 
@@ -641,7 +741,7 @@ export default function Home() {
             {/* Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-start">
               {/* Photo */}
-              <div data-tilt data-spotlight className="lg:col-span-5 relative w-full aspect-square md:aspect-[4/5] lg:aspect-auto lg:h-[540px] rounded-3xl overflow-hidden grayscale hover:grayscale-0 transition-all duration-700 border border-white/20 shadow-2xl group bg-[#0d0d14]">
+              <div data-tilt data-spotlight className="about-img lg:col-span-5 relative w-full aspect-square md:aspect-[4/5] lg:aspect-auto lg:h-[540px] rounded-3xl overflow-hidden grayscale hover:grayscale-0 transition-all duration-700 border border-white/20 shadow-2xl group bg-[#0d0d14]">
                 <img 
                   src={(about?.avatarUrl && about.avatarUrl.trim() !== "") ? about.avatarUrl : "/profile Image.jpeg"} 
                   alt="Jeevanantham M" 
@@ -653,14 +753,14 @@ export default function Home() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-30 transition-opacity duration-700 pointer-events-none" />
                 <div className="absolute bottom-6 left-6 right-6 p-4 bg-black/60 backdrop-blur-md rounded-2xl border border-white/10 font-mono text-xs text-white/80">
                   <p className="font-bold text-white">Jeevanantham M</p>
-                  <p className="text-white/50 text-[11px]">Software Development Engineer</p>
+                  <p className="text-white/50 text-[11px]">{about?.title || "Software Developer & System Designer"}</p>
                 </div>
               </div>
 
               {/* Bio & Details */}
               <div className="lg:col-span-7 space-y-8 lg:pt-2">
-                <p className="about-text text-white/80 leading-relaxed text-base md:text-lg font-normal whitespace-pre-line">
-                  {(about?.bio || `I’m Jeevanantham M — a Software Development Engineer & Full-Stack Systems Builder.
+                <p className="about-text about-col-item text-white/80 leading-relaxed text-base md:text-lg font-normal whitespace-pre-line">
+                  {(about?.bio || `I'm Jeevanantham M — a Software Developer & System Designer.
 
 I specialize in building scalable web applications, robust REST APIs, high-performance microservices, and modern user interfaces.
 
@@ -671,9 +771,9 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
                     .replace(/Technical Leadership & Architecture:/g, " Technical Leadership & Architecture:")
                   }
                 </p>
-                <div className="about-line h-px bg-white/15 w-full" style={{ transformOrigin: "left" }} />
+                <div className="about-line about-col-item h-px bg-white/15 w-full" style={{ transformOrigin: "left" }} />
                 
-                <div className="about-links flex flex-wrap gap-4 pt-2">
+                <div className="about-links about-col-item flex flex-wrap gap-4 pt-2">
                   <a href={`https://github.com/${about?.githubUsername || "M-Jeevanantham"}`} target="_blank" rel="noreferrer"
                     className="flex items-center gap-2 text-xs font-medium text-white/70 hover:text-white border border-white/20 hover:border-white/40 px-5 py-3 rounded-full bg-white/[0.04] transition-all">
                     <GitBranch className="w-4 h-4 text-purple-400" /> GitHub Profile
@@ -692,7 +792,7 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
             §3 EDUCATION — Vertical Journey Map Timeline
         ══════════════════════════════════════════════════════ */}
         <section id="education" className="py-32 px-6 border-t border-white/5">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-5xl mx-auto">
             {/* Header */}
             <div className="edu-title flex flex-col md:flex-row md:items-end justify-between mb-20 gap-4">
               <div>
@@ -711,93 +811,94 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
 
             {education.length === 0 ? <EmptyState text="Add education via the Admin Panel." /> : (
               <div className="relative">
-                {/* Vertical connecting line (the journey path) — glows on scroll */}
+                {/* ── Centered Vertical Timeline Line — glows on scroll ── */}
                 <div
-                  className="edu-journey-line absolute left-6 md:left-8 top-0 bottom-0 w-px"
+                  className="edu-journey-line hidden md:block absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[2px] rounded-full"
                   style={{
-                    background: "linear-gradient(to bottom, rgba(255,255,255,0.03), rgba(255,255,255,0.5) 40%, rgba(255,255,255,0.8) 70%, rgba(255,255,255,0.15))",
-                    boxShadow: "0 0 8px 2px rgba(255,255,255,0.15)",
+                    background: "linear-gradient(to bottom, rgba(255,255,255,0.02), rgba(255,255,255,0.6) 40%, rgba(200,200,255,0.9) 70%, rgba(255,255,255,0.1))",
+                    boxShadow: "0 0 8px 3px rgba(255,255,255,0.12)",
+                    transformOrigin: "top center",
+                  }}
+                />
+                {/* Mobile left-side line */}
+                <div
+                  className="edu-journey-line md:hidden absolute left-5 top-0 bottom-0 w-[2px] rounded-full"
+                  style={{
+                    background: "linear-gradient(to bottom, rgba(255,255,255,0.02), rgba(255,255,255,0.6) 40%, rgba(200,200,255,0.9) 70%, rgba(255,255,255,0.1))",
+                    boxShadow: "0 0 8px 3px rgba(255,255,255,0.12)",
                     transformOrigin: "top center",
                   }}
                 />
 
-                <div className="space-y-0">
-                  {education.map((edu, i) => (
-                    <div key={edu.id} className="edu-card relative pl-16 md:pl-20 pb-16 last:pb-0">
+                <div className="space-y-16">
+                  {education.map((edu, i) => {
+                    const isRight = i % 2 === 1;
+                    return (
+                      <div key={edu.id} className="edu-card relative">
 
-                      {/* Milestone node dot on the path */}
-                      <div className="absolute left-4 md:left-[26px] top-2 flex flex-col items-center">
-                        <div className="edu-milestone-dot w-4 h-4 rounded-full bg-black border-2 border-white/60 flex items-center justify-center transition-all duration-300">
-                          <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                        </div>
-                        {/* Connector tick line to card */}
-                        <div className="w-px flex-1 bg-white/10 mt-2" style={{ minHeight: "calc(100% - 24px)" }} />
-                      </div>
+                        {/* ── Desktop alternating layout ── */}
+                        <div className="hidden md:grid grid-cols-[1fr_auto_1fr] items-center gap-0">
 
-                      {/* Step label (floating left) */}
-                      <div className="absolute left-[-28px] md:left-[-20px] top-0 text-white/10 text-[10px] font-black tracking-widest" style={{ fontFamily: "'Space Grotesk', sans-serif", writingMode: "vertical-rl" }}>
-                        0{i + 1}
-                      </div>
-
-                      {/* Card */}
-                      <div
-                        data-spotlight
-                        className="bg-[#0a0a0a] border border-white/10 hover:border-white/25 rounded-2xl p-7 md:p-9 transition-all duration-300 group cursor-default shadow-lg relative overflow-hidden"
-                      >
-                        {/* Ghost large period number */}
-                        <div className="absolute bottom-[-1.5rem] right-3 text-white/[0.04] font-black select-none pointer-events-none"
-                          style={{ fontSize: "clamp(4rem, 8vw, 7rem)", fontFamily: "'Space Grotesk', sans-serif", lineHeight: 1 }}>
-                          {edu.period?.split("–")[0]?.split("-")[0]?.trim() || String(i + 1).padStart(2, "0")}
-                        </div>
-
-                        {/* Period + Grade badges */}
-                        <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
-                          <span className="inline-flex items-center gap-1.5 text-white/40 text-xs font-mono border border-white/10 px-3 py-1.5 rounded-full bg-white/[0.03]">
-                            <Calendar className="w-3 h-3 text-white/50" /> {edu.period}
-                          </span>
-                          {edu.grade && (
-                            <span className="text-white text-xs font-bold px-3 py-1.5 bg-white/10 border border-white/20 rounded-full">
-                              {edu.grade}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Degree */}
-                        <h3 className="text-white font-extrabold text-xl md:text-3xl mb-3 leading-tight group-hover:text-white/90 transition-colors"
-                          style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                          {edu.degree}
-                        </h3>
-
-                        {/* Institution + Location */}
-                        <p className="text-white/65 font-semibold text-sm mb-1 flex items-center gap-2">
-                          <Building className="w-4 h-4 text-white/40 flex-shrink-0" /> {edu.institution}
-                        </p>
-                        {(edu as any).location && (
-                          <p className="text-white/35 text-xs italic flex items-center gap-1 mb-4">
-                            <MapPin className="w-3 h-3 text-white/35 flex-shrink-0" /> {(edu as any).location}
-                          </p>
-                        )}
-
-                        {/* Description */}
-                        {(edu as any).description && (
-                          <div className="border-t border-white/8 pt-4 mt-4">
-                            <p className="text-white/45 text-xs md:text-sm leading-relaxed">
-                              {(edu as any).description}
-                            </p>
+                          {/* Left slot */}
+                          <div className={`pr-10 ${isRight ? "opacity-0 pointer-events-none" : ""}`}>
+                            {!isRight && (
+                              <div
+                                data-spotlight
+                                className="bg-[#0a0a0a] border border-white/10 hover:border-white/30 rounded-2xl p-7 md:p-9 transition-all duration-300 group cursor-default shadow-xl relative overflow-hidden"
+                              >
+                                <EduCardInner edu={edu} i={i} />
+                              </div>
+                            )}
                           </div>
-                        )}
+
+                          {/* Center node */}
+                          <div className="flex flex-col items-center z-10">
+                            <div className="w-5 h-5 rounded-full bg-black border-2 border-white/70 flex items-center justify-center shadow-[0_0_10px_3px_rgba(255,255,255,0.2)] transition-all duration-300">
+                              <div className="w-2 h-2 rounded-full bg-white" />
+                            </div>
+                            <span className="text-white/15 text-[9px] font-black tracking-widest mt-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                              0{i + 1}
+                            </span>
+                          </div>
+
+                          {/* Right slot */}
+                          <div className={`pl-10 ${!isRight ? "opacity-0 pointer-events-none" : ""}`}>
+                            {isRight && (
+                              <div
+                                data-spotlight
+                                className="bg-[#0a0a0a] border border-white/10 hover:border-white/30 rounded-2xl p-7 md:p-9 transition-all duration-300 group cursor-default shadow-xl relative overflow-hidden"
+                              >
+                                <EduCardInner edu={edu} i={i} />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* ── Mobile stacked layout ── */}
+                        <div className="md:hidden pl-14">
+                          <div className="absolute left-3.5 top-2 w-4 h-4 rounded-full bg-black border-2 border-white/60 flex items-center justify-center">
+                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                          </div>
+                          <div
+                            data-spotlight
+                            className="bg-[#0a0a0a] border border-white/10 hover:border-white/25 rounded-2xl p-6 transition-all duration-300 group cursor-default shadow-lg relative overflow-hidden"
+                          >
+                            <EduCardInner edu={edu} i={i} />
+                          </div>
+                        </div>
+
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Journey end cap */}
-                <div className="relative pl-16 md:pl-20 pt-4">
-                  <div className="absolute left-4 md:left-[26px] top-4 w-4 h-4 rounded-full border border-white/15 bg-black flex items-center justify-center">
-                    <GraduationCap className="w-2.5 h-2.5 text-white/40" />
+                <div className="relative flex justify-center mt-12">
+                  <div className="w-10 h-10 rounded-full border border-white/15 bg-black flex items-center justify-center shadow-[0_0_8px_rgba(255,255,255,0.08)]">
+                    <GraduationCap className="w-4 h-4 text-white/40" />
                   </div>
-                  <p className="text-white/20 text-xs font-mono uppercase tracking-widest">Journey Continues...</p>
                 </div>
+                <p className="text-center text-white/20 text-xs font-mono uppercase tracking-widest mt-3">Journey Continues...</p>
               </div>
             )}
           </div>
@@ -826,28 +927,11 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
         </section>
 
         {/* ═══════════════════════════════════════════════════
-            §5 EXPERIENCE — Skiper80 Interactive Experience Showcase
+            §5 EXPERIENCE — Skiper80 Full-Screen Pinned Scroll
         ══════════════════════════════════════════════════════ */}
-        <section id="experience" className="py-32 px-6 border-t border-white/5">
-          <div className="max-w-7xl mx-auto">
-            <div className="exp-title flex items-end justify-between mb-12">
-              <div>
-                <div className="inline-flex items-center gap-3 mb-4">
-                  <span className="block w-6 h-px bg-white/30" />
-                  <span className="text-white/30 text-[10px] font-semibold tracking-[0.3em] uppercase">04</span>
-                </div>
-                <h2 style={{ fontSize: "clamp(2.2rem, 5vw, 4rem)", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, letterSpacing: "-0.03em" }}>
-                  Experience
-                </h2>
-              </div>
-              <p className="hidden lg:block text-white/40 text-xs font-mono uppercase tracking-widest border border-white/10 px-4 py-2 rounded-full">
-                Skiper80 Interactive Showcase ✦
-              </p>
-            </div>
-
-            {/* Skiper80 Interactive Experience Showcase connected to Backend Database */}
-            <Skiper80ExperienceShowcase items={experience} />
-          </div>
+        <section id="experience" className="border-t border-white/5">
+          {/* Skiper80 handles its own heading, GSAP pinning, and scroll travel */}
+          <Skiper80ExperienceShowcase items={experience} />
         </section>
 
         {/* ═══════════════════════════════════════════════════
@@ -867,19 +951,41 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
               </div>
             </div>
 
-            {/* Big stat panels */}
+            {/* Big stat panels — live data */}
             <div ref={statsRef} className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10">
               {[
-                { label: "LeetCode Solved", value: leetcodeStats?.totalSolved ?? 0, link: about?.leetcodeUsername ? `https://leetcode.com/${about.leetcodeUsername}` : undefined },
-                { label: "GitHub Repositories", value: githubStats?.publicRepos ?? 0, link: about?.githubUsername ? `https://github.com/${about.githubUsername}` : undefined },
-                { label: "Projects Built", value: projects.length || 0 },
+                {
+                  label: "LeetCode Solved",
+                  value: leetcodeStats?.totalSolved ?? 0,
+                  loading: !leetcodeStats,
+                  link: `https://leetcode.com/${about?.leetcodeUsername || "Jeeva_sadi"}`,
+                },
+                {
+                  label: "GitHub Repositories",
+                  value: githubStats?.publicRepos ?? 0,
+                  loading: !githubStats,
+                  link: `https://github.com/${about?.githubUsername || "M-Jeevanantham"}`,
+                },
+                {
+                  label: "Projects Built",
+                  value: projects.length,
+                  loading: false,
+                  link: undefined,
+                },
               ].map((stat, i) => (
                 <div key={i} data-spotlight data-tilt className="ach-stat border border-white/8 rounded-2xl p-8 md:p-10 hover:border-white/20 transition-all duration-300 flex flex-col justify-between group cursor-default">
                   <p className="text-white/25 text-[10px] font-semibold tracking-[0.3em] uppercase mb-8">{stat.label}</p>
                   <div>
-                    <p style={{ fontSize: "clamp(3.5rem, 8vw, 7rem)", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, letterSpacing: "-0.05em", lineHeight: 1, color: "white" }}>
-                      <CountUp target={stat.value} suffix="" trigger={statsVisible} />
-                    </p>
+                    {stat.loading ? (
+                      <div className="flex items-center gap-2 text-white/30 text-xs font-mono pb-2">
+                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                        Fetching live data...
+                      </div>
+                    ) : (
+                      <p style={{ fontSize: "clamp(3.5rem, 8vw, 7rem)", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, letterSpacing: "-0.05em", lineHeight: 1, color: "white" }}>
+                        <CountUp target={stat.value} suffix="" trigger={statsVisible} />
+                      </p>
+                    )}
                     {stat.link && (
                       <a href={stat.link} target="_blank" rel="noreferrer"
                         className="inline-flex items-center gap-1.5 mt-5 text-white/25 hover:text-white/70 text-xs font-medium tracking-wide transition-colors group-hover:text-white/50">
@@ -891,10 +997,10 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
               ))}
             </div>
 
-            {/* ── Live Stats: GitHub + LeetCode in IDE Terminal Glass Cards ── */}
+            {/* Live Stats: GitHub + LeetCode Terminal Glass Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
 
-              {/* GitHub IDE Terminal Glass Card */}
+              {/* GitHub Terminal Card */}
               <div className="bg-[#0a0b10]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden font-mono text-xs md:text-sm">
                 <div className="bg-[#12131a] border-b border-white/10 px-5 py-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -904,7 +1010,6 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
                   </div>
                   <span className="text-white/40 text-xs font-mono">root@portfolio:~/github</span>
                 </div>
-
                 <div className="p-6 md:p-8 space-y-4">
                   <div className="flex items-center justify-between border-b border-white/5 pb-4">
                     <div className="flex items-center gap-3">
@@ -920,7 +1025,6 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
                       </span>
                     )}
                   </div>
-
                   {githubStats ? (
                     <div className="space-y-3 font-mono text-xs md:text-sm">
                       <p><span className="text-purple-400">const</span> <span className="text-cyan-300">repos</span> = <span className="text-yellow-300">{githubStats.publicRepos}</span>;</p>
@@ -931,8 +1035,8 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
                         <p><span className="text-cyan-300">languages</span> = [{githubStats.topLanguages.map((l: any) => `"${l.lang}"`).join(', ')}];</p>
                       )}
                       <a href={githubStats.profileUrl} target="_blank" rel="noreferrer"
-                        className="inline-flex items-center gap-2 pt-2 text-white/40 hover:text-white transition-colors link-underline">
-                        <span>Execute git clone / profile →</span>
+                        className="inline-flex items-center gap-2 pt-2 text-white/40 hover:text-white transition-colors">
+                        <span>View GitHub Profile →</span>
                       </a>
                     </div>
                   ) : (
@@ -944,7 +1048,7 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
                 </div>
               </div>
 
-              {/* LeetCode IDE Terminal Glass Card */}
+              {/* LeetCode Terminal Card */}
               <div className="bg-[#0a0b10]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden font-mono text-xs md:text-sm">
                 <div className="bg-[#12131a] border-b border-white/10 px-5 py-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -954,7 +1058,6 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
                   </div>
                   <span className="text-white/40 text-xs font-mono">root@portfolio:~/leetcode</span>
                 </div>
-
                 <div className="p-6 md:p-8 space-y-4">
                   <div className="flex items-center justify-between border-b border-white/5 pb-4">
                     <div className="flex items-center gap-3">
@@ -970,14 +1073,12 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
                       </span>
                     )}
                   </div>
-
                   {leetcodeStats ? (
                     <div className="space-y-3 font-mono text-xs md:text-sm">
                       <p><span className="text-purple-400">const</span> <span className="text-cyan-300">total_solved</span> = <span className="text-emerald-300">{leetcodeStats.totalSolved}</span>;</p>
                       <p><span className="text-purple-400">const</span> <span className="text-cyan-300">global_rank</span> = <span className="text-yellow-300">"{leetcodeStats.ranking ? `#${leetcodeStats.ranking.toLocaleString()}` : "Top Tier"}"</span>;</p>
                       <p><span className="text-purple-400">const</span> <span className="text-cyan-300">active_days</span> = <span className="text-yellow-300">{leetcodeStats.totalActiveDays}</span>;</p>
                       <p><span className="text-purple-400">const</span> <span className="text-cyan-300">current_streak</span> = <span className="text-emerald-300">"{leetcodeStats.streak} Days"</span>;</p>
-
                       <div className="pt-2">
                         <p className="text-white/40 mb-2">// Problem Difficulty Breakdown</p>
                         <div className="grid grid-cols-3 gap-2 text-center text-xs">
@@ -986,9 +1087,8 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
                           <div className="bg-red-500/10 border border-red-500/20 p-2 rounded-lg text-red-400 font-bold">Hard: {leetcodeStats.hardSolved}</div>
                         </div>
                       </div>
-
                       <a href={leetcodeStats.profileUrl} target="_blank" rel="noreferrer"
-                        className="inline-flex items-center gap-2 pt-2 text-white/40 hover:text-white transition-colors link-underline">
+                        className="inline-flex items-center gap-2 pt-2 text-white/40 hover:text-white transition-colors">
                         <span>View LeetCode Profile →</span>
                       </a>
                     </div>
@@ -1003,7 +1103,7 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
 
             </div>
 
-            {/* Custom Achievements configured in Admin Panel */}
+            {/* Custom Achievements from Admin Panel */}
             {achievements.length > 0 && (
               <div className="space-y-4">
                 <h3 className="text-white/40 text-xs font-mono uppercase tracking-widest mb-4">// Verified Platform Milestones</h3>
@@ -1053,19 +1153,30 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
               </div>
             </div>
 
-            {/* Skiper17 Card Stack connected to Backend Database */}
+            {/* Skiper17 Card Stack connected to Backend Database with Multi-Image Support */}
             <Skiper17ProjectCardStack
-              projects={projects.map((p) => ({
-                id: p.id,
-                title: p.title,
-                category: p.techStack ? p.techStack.split(",")[0] : "Full-Stack Project",
-                description: p.description,
-                tags: p.techStack,
-                githubUrl: p.githubUrl,
-                liveUrl: p.liveUrl,
-                featured: p.featured,
-                image: p.imageUrl,
-              }))}
+              projects={projects.map((p) => {
+                const imgList = p.imageUrl ? (
+                  p.imageUrl.includes("|||")
+                    ? p.imageUrl.split("|||").map((s: string) => s.trim()).filter(Boolean)
+                    : p.imageUrl.includes(",") && !p.imageUrl.startsWith("data:")
+                    ? p.imageUrl.split(",").map((s: string) => s.trim()).filter(Boolean)
+                    : [p.imageUrl]
+                ) : [];
+
+                return {
+                  id: p.id,
+                  title: p.title,
+                  category: p.techStack ? p.techStack.split(",")[0] : "Full-Stack Project",
+                  description: p.description,
+                  tags: p.techStack,
+                  githubUrl: p.githubUrl,
+                  liveUrl: p.liveUrl,
+                  featured: p.featured,
+                  image: imgList[0] || p.imageUrl,
+                  images: imgList,
+                };
+              })}
             />
           </div>
         </section>
@@ -1105,47 +1216,145 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
         </section>
 
         {/* ═══════════════════════════════════════════════════
-            §9 CONTACT — Clean Layout with Social Links
+            §9 CONTACT — Premium Black & White Glassmorphism Layout
         ══════════════════════════════════════════════════════ */}
-        <section id="contact" className="py-32 px-6 border-t border-white/5">
-          <div className="max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-16 lg:gap-20 items-start">
+        <section id="contact" className="py-32 px-6 border-t border-white/5 relative overflow-hidden">
+          {/* Background subtle monochrome ambient glow */}
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-white/[0.02] rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white/[0.02] rounded-full blur-3xl pointer-events-none" />
 
-              {/* Left Column: Form */}
-              <div>
-                <div className="contact-title mb-12">
-                  <div className="inline-flex items-center gap-3 mb-4">
-                    <span className="block w-6 h-px bg-white/30" />
-                    <span className="text-white/30 text-[10px] font-semibold tracking-[0.3em] uppercase">08</span>
+          <div className="max-w-6xl mx-auto relative z-10">
+            {/* Section Header */}
+            <div className="contact-title text-center mb-20">
+              <div className="inline-flex items-center gap-3 mb-4">
+                <span className="block w-6 h-px bg-white/30" />
+                <span className="text-white/30 text-[10px] font-semibold tracking-[0.3em] uppercase">08</span>
+                <span className="block w-6 h-px bg-white/30" />
+              </div>
+              <h2 style={{ fontSize: "clamp(3rem, 7vw, 5.5rem)", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1 }}>
+                Let's <span className="bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">talk.</span>
+              </h2>
+              <p className="text-white/40 text-lg mt-4 font-light max-w-md mx-auto">
+                A project, opportunity, or just a hello — drop me a message.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 items-start">
+
+              {/* Left: Social cards grid */}
+              <div className="contact-info-panel lg:col-span-2 space-y-4">
+                {/* Availability badge - Black & White */}
+                <div className="border border-white/20 bg-white/[0.04] rounded-2xl p-5 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
+                    <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
                   </div>
-                  <h2 style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.05 }}>
-                    Let's talk.
-                  </h2>
-                  <p className="text-white/45 text-base md:text-lg font-light mt-4 max-w-md leading-relaxed">
-                    A project, opportunity, or just a hello — I'm all ears.
-                  </p>
+                  <div>
+                    <p className="text-white text-sm font-bold font-mono">Available for work</p>
+                    <p className="text-white/40 text-xs font-mono mt-0.5">IST · UTC+5:30 · &lt; 24h response</p>
+                  </div>
                 </div>
 
-                {/* Form — all fields in one block, no GSAP stagger */}
-                <div className="contact-form-wrap">
+                {/* Social link cards - Black & White Monochrome */}
+                {[
+                  {
+                    icon: (
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
+                    ),
+                    label: "LinkedIn",
+                    sub: "Connect professionally",
+                    href: about?.linkedinUrl || "https://linkedin.com/",
+                    show: true,
+                  },
+                  {
+                    icon: (
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+                    ),
+                    label: "Instagram",
+                    sub: "Follow my journey",
+                    href: about?.instagramUrl || "https://instagram.com/",
+                    show: true,
+                  },
+                  {
+                    icon: (
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    ),
+                    label: "WhatsApp",
+                    sub: "Message me directly",
+                    href: (about as any)?.whatsappNumber ? `https://wa.me/${(about as any).whatsappNumber}` : about?.email ? `https://wa.me/${about.email.replace(/[^0-9]/g, "")}` : "https://wa.me/",
+                    show: true,
+                  },
+                  {
+                    icon: (
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
+                    ),
+                    label: "GitHub",
+                    sub: `@${about?.githubUsername || "M-Jeevanantham"}`,
+                    href: `https://github.com/${about?.githubUsername || "M-Jeevanantham"}`,
+                    show: true,
+                  },
+                  {
+                    icon: <Mail className="w-5 h-5" />,
+                    label: "Email",
+                    sub: about?.email || "hello@portfolio.dev",
+                    href: about?.email ? `mailto:${about.email}` : "#",
+                    show: !!about?.email,
+                  },
+                ].filter(s => s.show).map((social, i) => (
+                  <a
+                    key={i}
+                    href={social.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-4 p-4 rounded-2xl border border-white/10 hover:border-white/30 bg-white/[0.03] hover:bg-white/[0.08] hover:scale-[1.02] transition-all duration-300 group backdrop-blur-sm"
+                  >
+                    <div className="w-10 h-10 rounded-xl border border-white/15 bg-white/5 flex items-center justify-center flex-shrink-0 text-white group-hover:scale-110 group-hover:bg-white group-hover:text-black transition-all">
+                      {social.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm text-white">{social.label}</p>
+                      <p className="text-white/40 text-xs font-mono truncate">{social.sub}</p>
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-white/20 group-hover:text-white transition-colors flex-shrink-0" />
+                  </a>
+                ))}
+
+                {/* Location — Black & White */}
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/10 bg-white/[0.02]">
+                  <MapPin className="w-4 h-4 text-white/40" />
+                  <span className="text-white/60 text-sm font-mono">{about?.location || "Salem, Tamil Nadu, India"}</span>
+                </div>
+              </div>
+
+              {/* Right: Contact Form */}
+              <div className="lg:col-span-3">
+                <div className="contact-form-wrap bg-white/[0.03] border border-white/10 rounded-3xl p-8 md:p-10 backdrop-blur-sm">
                   {sentSuccess ? (
-                    <div className="flex flex-col items-center gap-4 py-16 text-center border border-white/10 rounded-2xl bg-white/[0.02]">
-                      <CheckCircle className="w-12 h-12 text-emerald-400" />
-                      <h3 className="text-white text-2xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Message Sent!</h3>
-                      <p className="text-white/45 text-sm">I'll get back to you within 24 hours.</p>
-                      <button onClick={() => setSentSuccess(false)} className="mt-4 text-white/40 hover:text-white text-xs underline transition-colors">Send another →</button>
+                    <div className="flex flex-col items-center gap-6 py-16 text-center">
+                      <div className="w-20 h-20 rounded-full bg-white/10 border border-white/30 flex items-center justify-center">
+                        <CheckCircle className="w-10 h-10 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-white text-2xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Message Sent!</h3>
+                        <p className="text-white/45 text-sm mt-2">I'll get back to you within 24 hours.</p>
+                      </div>
+                      <button onClick={() => setSentSuccess(false)} className="mt-2 text-white/40 hover:text-white text-xs underline transition-colors">Send another →</button>
                     </div>
                   ) : (
                     <form onSubmit={handleSendMessage} className="space-y-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div>
+                        <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700 }} className="text-white text-xl mb-1">Send a Message</h3>
+                        <p className="text-white/30 text-sm">I read every message personally.</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <label className="block text-white/40 text-[11px] font-semibold tracking-[0.2em] uppercase mb-3">Your Name</label>
+                          <label className="block text-white/40 text-[11px] font-semibold tracking-[0.2em] uppercase mb-2.5">Your Name</label>
                           <input type="text" required value={formData.name}
                             onChange={e => setFormData({ ...formData, name: e.target.value })}
                             placeholder="Jane Doe" className="input-minimal" />
                         </div>
                         <div>
-                          <label className="block text-white/40 text-[11px] font-semibold tracking-[0.2em] uppercase mb-3">Email Address</label>
+                          <label className="block text-white/40 text-[11px] font-semibold tracking-[0.2em] uppercase mb-2.5">Email Address</label>
                           <input type="email" required value={formData.email}
                             onChange={e => setFormData({ ...formData, email: e.target.value })}
                             placeholder="jane@company.com" className="input-minimal" />
@@ -1153,109 +1362,22 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
                       </div>
 
                       <div>
-                        <label className="block text-white/40 text-[11px] font-semibold tracking-[0.2em] uppercase mb-3">Message</label>
+                        <label className="block text-white/40 text-[11px] font-semibold tracking-[0.2em] uppercase mb-2.5">Message</label>
                         <textarea required rows={5} value={formData.message}
                           onChange={e => setFormData({ ...formData, message: e.target.value })}
                           placeholder="Hey Jeeva, let's work together..."
                           className="input-minimal resize-none" />
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-white/8">
-                        <p className="text-white/20 text-xs font-mono">// Direct inbox gateway</p>
-                        <button type="submit" disabled={sending} data-magnetic data-cursor="SEND"
-                          className="flex items-center gap-2.5 px-8 py-3.5 bg-white text-black text-sm font-bold rounded-full hover:bg-zinc-100 active:scale-95 transition-all disabled:opacity-40">
-                          {sending ? "Sending..." : <><span>Send Message</span><Send className="w-4 h-4" /></>}
-                        </button>
-                      </div>
+                      <button type="submit" disabled={sending} data-magnetic data-cursor="SEND"
+                        className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all hover:bg-zinc-200 shadow-[0_0_25px_rgba(255,255,255,0.2)] disabled:opacity-40 relative overflow-hidden group"
+                        style={{ background: "#ffffff", color: "#000000" }}
+                      >
+                        <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        {sending ? "Sending..." : <><span>Send Message</span><Send className="w-4 h-4" /></>}
+                      </button>
                     </form>
                   )}
-                </div>
-              </div>
-
-              {/* Right Column: Info + Social Links */}
-              <div className="contact-info-panel lg:sticky lg:top-24 space-y-4">
-
-                {/* Status card */}
-                <div className="border border-white/10 rounded-2xl p-6 bg-white/[0.02]">
-                  <div className="flex items-center gap-2 mb-5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-emerald-400 text-xs font-mono font-semibold uppercase tracking-wider">Available for work</span>
-                  </div>
-                  <div className="space-y-3">
-                    {about?.location && (
-                      <div className="flex items-center gap-3">
-                        <MapPin className="w-4 h-4 text-white/25 flex-shrink-0" />
-                        <span className="text-white/60 text-sm">{about.location}</span>
-                      </div>
-                    )}
-                    {about?.email && (
-                      <div className="flex items-center gap-3">
-                        <Mail className="w-4 h-4 text-white/25 flex-shrink-0" />
-                        <a href={`mailto:${about.email}`} className="text-white/60 hover:text-white text-sm transition-colors">{about.email}</a>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-3">
-                      <Terminal className="w-4 h-4 text-white/25 flex-shrink-0" />
-                      <span className="text-white/40 text-sm font-mono">IST · UTC +5:30 · &lt; 24h response</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Social links */}
-                <div className="border border-white/10 rounded-2xl p-6 bg-white/[0.02]">
-                  <p className="text-white/25 text-[10px] uppercase tracking-widest mb-4 font-semibold">Connect</p>
-                  <div className="space-y-2">
-                    {about?.githubUsername && (
-                      <a href={`https://github.com/${about.githubUsername}`} target="_blank" rel="noreferrer"
-                        className="flex items-center gap-3 text-white/50 hover:text-white text-sm font-medium transition-all group p-2 rounded-xl hover:bg-white/5">
-                        <div className="w-8 h-8 rounded-lg border border-white/10 group-hover:border-white/30 flex items-center justify-center transition-colors bg-white/[0.03] flex-shrink-0">
-                          <Github className="w-4 h-4" />
-                        </div>
-                        GitHub
-                        <ArrowUpRight className="w-3.5 h-3.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </a>
-                    )}
-                    {about?.linkedinUrl && (
-                      <a href={about.linkedinUrl} target="_blank" rel="noreferrer"
-                        className="flex items-center gap-3 text-white/50 hover:text-white text-sm font-medium transition-all group p-2 rounded-xl hover:bg-white/5">
-                        <div className="w-8 h-8 rounded-lg border border-white/10 group-hover:border-white/30 flex items-center justify-center transition-colors bg-white/[0.03] flex-shrink-0">
-                          <Linkedin className="w-4 h-4" />
-                        </div>
-                        LinkedIn
-                        <ArrowUpRight className="w-3.5 h-3.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </a>
-                    )}
-                    {about?.instagramUrl && (
-                      <a href={about.instagramUrl} target="_blank" rel="noreferrer"
-                        className="flex items-center gap-3 text-white/50 hover:text-white text-sm font-medium transition-all group p-2 rounded-xl hover:bg-white/5">
-                        <div className="w-8 h-8 rounded-lg border border-white/10 group-hover:border-white/30 flex items-center justify-center transition-colors bg-white/[0.03] flex-shrink-0">
-                          <Instagram className="w-4 h-4" />
-                        </div>
-                        Instagram
-                        <ArrowUpRight className="w-3.5 h-3.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </a>
-                    )}
-                    {about?.email && (
-                      <a href={`mailto:${about.email}`}
-                        className="flex items-center gap-3 text-white/50 hover:text-white text-sm font-medium transition-all group p-2 rounded-xl hover:bg-white/5">
-                        <div className="w-8 h-8 rounded-lg border border-white/10 group-hover:border-white/30 flex items-center justify-center transition-colors bg-white/[0.03] flex-shrink-0">
-                          <Mail className="w-4 h-4" />
-                        </div>
-                        Email
-                        <ArrowUpRight className="w-3.5 h-3.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </a>
-                    )}
-                    {about?.leetcodeUsername && (
-                      <a href={`https://leetcode.com/${about.leetcodeUsername}`} target="_blank" rel="noreferrer"
-                        className="flex items-center gap-3 text-white/50 hover:text-white text-sm font-medium transition-all group p-2 rounded-xl hover:bg-white/5">
-                        <div className="w-8 h-8 rounded-lg border border-white/10 group-hover:border-white/30 flex items-center justify-center transition-colors bg-white/[0.03] flex-shrink-0">
-                          <Code2 className="w-4 h-4" />
-                        </div>
-                        LeetCode
-                        <ArrowUpRight className="w-3.5 h-3.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </a>
-                    )}
-                  </div>
                 </div>
               </div>
 
@@ -1266,12 +1388,8 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
         {/* ── FOOTER ───────────────────────────────────────── */}
         <footer className="py-10 px-6 border-t border-white/5">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-white/15 text-xs tracking-wide">© {new Date().getFullYear()} Jeeva — Software Development Engineer</p>
+            <p className="text-white/15 text-xs tracking-wide">© {new Date().getFullYear()} Jeeva — Software Developer & System Designer</p>
             <div className="flex items-center gap-6">
-              {about?.githubUsername && (
-                <a href={`https://github.com/${about.githubUsername}`} target="_blank" rel="noreferrer"
-                  className="text-white/15 hover:text-white/50 text-xs transition-colors link-underline">GitHub</a>
-              )}
               {about?.linkedinUrl && (
                 <a href={about.linkedinUrl} target="_blank" rel="noreferrer"
                   className="text-white/15 hover:text-white/50 text-xs transition-colors link-underline">LinkedIn</a>
@@ -1280,9 +1398,9 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
                 <a href={about.instagramUrl} target="_blank" rel="noreferrer"
                   className="text-white/15 hover:text-white/50 text-xs transition-colors link-underline">Instagram</a>
               )}
-              {about?.leetcodeUsername && (
-                <a href={`https://leetcode.com/${about.leetcodeUsername}`} target="_blank" rel="noreferrer"
-                  className="text-white/15 hover:text-white/50 text-xs transition-colors link-underline">LeetCode</a>
+              {about?.githubUsername && (
+                <a href={`https://github.com/${about.githubUsername}`} target="_blank" rel="noreferrer"
+                  className="text-white/15 hover:text-white/50 text-xs transition-colors link-underline">GitHub</a>
               )}
             </div>
           </div>

@@ -21,7 +21,7 @@ model User {
 
 model About {
   id                String   @id @default(uuid())
-  title             String   @default("Software Development Engineer")
+  title             String   @default("Software Developer & System Designer")
   bio               String
   tagline           String?
   location          String?

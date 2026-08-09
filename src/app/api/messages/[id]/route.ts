@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, withDB } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 
@@ -12,10 +12,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const { id } = await params;
     const body = await req.json();
-    const updated = await prisma.message.update({
-      where: { id },
-      data: { read: Boolean(body.read) },
-    });
+    const updated = await withDB(() =>
+      prisma.message.update({
+        where: { id },
+        data: { read: Boolean(body.read) },
+      })
+    );
     return NextResponse.json(updated);
   } catch (error) {
     return NextResponse.json({ error: "Failed to update message" }, { status: 500 });
@@ -30,7 +32,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
   try {
     const { id } = await params;
-    await prisma.message.delete({ where: { id } });
+    await withDB(() => prisma.message.delete({ where: { id } }));
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: "Failed to delete message" }, { status: 500 });

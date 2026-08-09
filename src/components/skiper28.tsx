@@ -30,7 +30,7 @@ const DEFAULT_EXPERIENCE: ExperienceItem[] = [
     role: "Lead Full-Stack Systems Builder",
     period: "2024 – 2025",
     location: "Remote / Independent",
-    description: "• Built and shipped enterprise SaaS applications end-to-end including Boutique (E-Commerce Platform with JWT & Payment Webhooks) and ServeSync (GPS Geofenced Workforce Marketplace).\n• Designed 14-module clean architecture business systems with zero downtime database migrations and offline-first data synchronization.",
+    description: "• Built and shipped enterprise SaaS applications end-to-end including ServeSync (GPS Geofenced Workforce Marketplace).\n• Designed 14-module clean architecture business systems with zero downtime database migrations and offline-first data synchronization.",
     skillsUsed: "Next.js, TypeScript, PostgreSQL, Flutter, Payment APIs, Redis, System Design",
   },
 ];

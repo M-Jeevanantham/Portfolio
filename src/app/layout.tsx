@@ -19,11 +19,11 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Jeeva — Software Development Engineer",
-  description: "Portfolio of Jeeva — Full-Stack SDE specializing in scalable backend systems and modern web experiences.",
+  title: "Jeeva — Software Developer & System Designer",
+  description: "Portfolio of Jeeva — Software Developer & System Designer specializing in scalable backend systems and modern web experiences.",
   openGraph: {
-    title: "Jeeva — Software Development Engineer",
-    description: "Full-Stack SDE portfolio",
+    title: "Jeeva — Software Developer & System Designer",
+    description: "Software Developer & System Designer portfolio",
   },
 };
 

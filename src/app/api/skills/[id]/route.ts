@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, withDB } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 
@@ -14,15 +14,17 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const body = await req.json();
     const { name, category, proficiency, icon } = body;
 
-    const updated = await prisma.skill.update({
-      where: { id },
-      data: {
-        name,
-        category,
-        proficiency: Number(proficiency),
-        icon,
-      },
-    });
+    const updated = await withDB(() =>
+      prisma.skill.update({
+        where: { id },
+        data: {
+          name,
+          category,
+          proficiency: Number(proficiency),
+          icon,
+        },
+      })
+    );
 
     return NextResponse.json(updated);
   } catch (error) {
@@ -38,7 +40,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
   try {
     const { id } = await params;
-    await prisma.skill.delete({ where: { id } });
+    await withDB(() => prisma.skill.delete({ where: { id } }));
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: "Failed to delete skill" }, { status: 500 });

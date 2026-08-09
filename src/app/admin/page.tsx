@@ -21,7 +21,9 @@ import {
   CheckCircle2,
   CheckCircle,
   GitBranch,
-  Sparkles
+  Sparkles,
+  Pencil,
+  X
 } from "lucide-react";
 
 export default function AdminDashboardPage() {
@@ -45,13 +47,20 @@ export default function AdminDashboardPage() {
   // Form states
   const [aboutForm, setAboutForm] = useState({ title: "", bio: "", tagline: "", location: "", email: "", githubUsername: "", leetcodeUsername: "", linkedinUrl: "", instagramUrl: "", avatarUrl: "" });
   const [newProject, setNewProject] = useState({ title: "", description: "", techStack: "", liveUrl: "", githubUrl: "", imageUrl: "", featured: false });
+  const [projectImages, setProjectImages] = useState<string[]>([]);
+  const [singleImgUrlInput, setSingleImgUrlInput] = useState("");
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [newSkill, setNewSkill] = useState({ name: "", category: "Backend", proficiency: 85, icon: "⚡" });
   const [newExp, setNewExp] = useState({ company: "", role: "", period: "", location: "", description: "", skillsUsed: "" });
+  const [editingExpId, setEditingExpId] = useState<string | null>(null);
   const [newEdu, setNewEdu] = useState({ institution: "", degree: "", period: "", location: "", grade: "", description: "" });
   const [newAch, setNewAch] = useState({ title: "", platform: "LeetCode", stats: "", linkUrl: "", badgeUrl: "" });
+  const [editingAchId, setEditingAchId] = useState<string | null>(null);
   const [newCert, setNewCert] = useState({ title: "", issuer: "", issueDate: "", credentialId: "", credentialUrl: "", imageUrl: "" });
+  const [editingCertId, setEditingCertId] = useState<string | null>(null);
   const [resumeFileUrl, setResumeFileUrl] = useState("");
   const [resumeFileName, setResumeFileName] = useState("");
+  const [savedNotice, setSavedNotice] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -64,22 +73,30 @@ export default function AdminDashboardPage() {
   const fetchAllData = async () => {
     setLoading(true);
     try {
+      const ts = Date.now();
       const [abRes, projRes, skillRes, expRes, eduRes, achRes, certRes, resRes, msgRes] = await Promise.all([
-        fetch("/api/about"),
-        fetch("/api/projects"),
-        fetch("/api/skills"),
-        fetch("/api/experience"),
-        fetch("/api/education"),
-        fetch("/api/achievements"),
-        fetch("/api/certifications"),
-        fetch("/api/resume"),
-        fetch("/api/messages"),
+        fetch(`/api/about?t=${ts}`, { cache: "no-store" }),
+        fetch(`/api/projects?t=${ts}`, { cache: "no-store" }),
+        fetch(`/api/skills?t=${ts}`, { cache: "no-store" }),
+        fetch(`/api/experience?t=${ts}`, { cache: "no-store" }),
+        fetch(`/api/education?t=${ts}`, { cache: "no-store" }),
+        fetch(`/api/achievements?t=${ts}`, { cache: "no-store" }),
+        fetch(`/api/certifications?t=${ts}`, { cache: "no-store" }),
+        fetch(`/api/resume?t=${ts}`, { cache: "no-store" }),
+        fetch(`/api/messages?t=${ts}`, { cache: "no-store" }),
       ]);
 
       if (abRes.ok) {
         const abData = await abRes.json();
         setAbout(abData);
-        if (abData) setAboutForm(abData);
+        if (abData) {
+          setAboutForm((prev) => ({
+            ...prev,
+            ...abData,
+            githubUsername: abData.githubUsername || "",
+            leetcodeUsername: abData.leetcodeUsername || "",
+          }));
+        }
       }
       if (projRes.ok) setProjects(await projRes.json());
       if (skillRes.ok) setSkills(await skillRes.json());
@@ -99,25 +116,82 @@ export default function AdminDashboardPage() {
   // Handlers
   const handleSaveAbout = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("/api/about", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(aboutForm),
-    });
-    if (res.ok) fetchAllData();
+    try {
+      const res = await fetch("/api/about", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(aboutForm),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setAbout(updated);
+        setAboutForm((prev) => ({
+          ...prev,
+          ...updated,
+          githubUsername: updated.githubUsername || "",
+          leetcodeUsername: updated.leetcodeUsername || "",
+        }));
+        setSavedNotice("Saved successfully! Live statistics connected.");
+        setTimeout(() => setSavedNotice(""), 4000);
+        fetchAllData();
+      }
+    } catch (err) {
+      console.error("Error saving about info", err);
+    }
   };
 
   const handleAddProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("/api/projects", {
-      method: "POST",
+    const isEditing = !!editingProjectId;
+    const url = isEditing ? `/api/projects/${editingProjectId}` : "/api/projects";
+    const method = isEditing ? "PUT" : "POST";
+    
+    // Join all uploaded/added images using |||
+    const combinedImageUrl = projectImages.length > 0
+      ? projectImages.join("|||")
+      : newProject.imageUrl;
+
+    const payload = {
+      ...newProject,
+      imageUrl: combinedImageUrl,
+    };
+
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newProject),
+      body: JSON.stringify(payload),
     });
     if (res.ok) {
       setNewProject({ title: "", description: "", techStack: "", liveUrl: "", githubUrl: "", imageUrl: "", featured: false });
+      setProjectImages([]);
+      setSingleImgUrlInput("");
+      setEditingProjectId(null);
       fetchAllData();
     }
+  };
+
+  const handleEditClickProject = (proj: any) => {
+    setEditingProjectId(proj.id);
+    const parsed = proj.imageUrl
+      ? (proj.imageUrl.includes("|||")
+          ? proj.imageUrl.split("|||").map((s: string) => s.trim()).filter(Boolean)
+          : proj.imageUrl.includes(",") && !proj.imageUrl.startsWith("data:")
+          ? proj.imageUrl.split(",").map((s: string) => s.trim()).filter(Boolean)
+          : [proj.imageUrl])
+      : [];
+    
+    setProjectImages(parsed);
+    setSingleImgUrlInput("");
+    setNewProject({
+      title: proj.title,
+      description: proj.description,
+      techStack: proj.techStack,
+      liveUrl: proj.liveUrl || "",
+      githubUrl: proj.githubUrl || "",
+      imageUrl: proj.imageUrl || "",
+      featured: proj.featured || false,
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDeleteProject = async (id: string) => {
@@ -146,18 +220,37 @@ export default function AdminDashboardPage() {
 
   const handleAddExp = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("/api/experience", {
-      method: "POST",
+    const isEditing = !!editingExpId;
+    const url = isEditing ? `/api/experience/${editingExpId}` : "/api/experience";
+    const method = isEditing ? "PUT" : "POST";
+    
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newExp),
     });
     if (res.ok) {
       setNewExp({ company: "", role: "", period: "", location: "", description: "", skillsUsed: "" });
+      setEditingExpId(null);
       fetchAllData();
     }
   };
 
+  const handleEditClickExp = (exp: any) => {
+    setEditingExpId(exp.id);
+    setNewExp({
+      company: exp.company,
+      role: exp.role,
+      period: exp.period,
+      location: exp.location || "",
+      description: exp.description,
+      skillsUsed: exp.skillsUsed || "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleDeleteExp = async (id: string) => {
+    if (!confirm("Delete this experience?")) return;
     const res = await fetch(`/api/experience/${id}`, { method: "DELETE" });
     if (res.ok) fetchAllData();
   };
@@ -182,15 +275,31 @@ export default function AdminDashboardPage() {
 
   const handleAddAch = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("/api/achievements", {
-      method: "POST",
+    const isEditing = !!editingAchId;
+    const url = isEditing ? `/api/achievements/${editingAchId}` : "/api/achievements";
+    const method = isEditing ? "PUT" : "POST";
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newAch),
     });
     if (res.ok) {
       setNewAch({ title: "", platform: "LeetCode", stats: "", linkUrl: "", badgeUrl: "" });
+      setEditingAchId(null);
       fetchAllData();
     }
+  };
+
+  const handleEditClickAch = (ach: any) => {
+    setEditingAchId(ach.id);
+    setNewAch({
+      title: ach.title,
+      platform: ach.platform,
+      stats: ach.stats,
+      linkUrl: ach.linkUrl || "",
+      badgeUrl: ach.badgeUrl || "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDeleteAch = async (id: string) => {
@@ -200,15 +309,32 @@ export default function AdminDashboardPage() {
 
   const handleAddCert = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("/api/certifications", {
-      method: "POST",
+    const isEditing = !!editingCertId;
+    const url = isEditing ? `/api/certifications/${editingCertId}` : "/api/certifications";
+    const method = isEditing ? "PUT" : "POST";
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newCert),
     });
     if (res.ok) {
       setNewCert({ title: "", issuer: "", issueDate: "", credentialId: "", credentialUrl: "", imageUrl: "" });
+      setEditingCertId(null);
       fetchAllData();
     }
+  };
+
+  const handleEditClickCert = (cert: any) => {
+    setEditingCertId(cert.id);
+    setNewCert({
+      title: cert.title,
+      issuer: cert.issuer,
+      issueDate: cert.issueDate,
+      credentialId: cert.credentialId || "",
+      credentialUrl: cert.credentialUrl || "",
+      imageUrl: cert.imageUrl || "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDeleteCert = async (id: string) => {
@@ -254,10 +380,10 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#060608] text-zinc-100 font-sans selection:bg-white selection:text-black flex flex-col md:flex-row">
+    <div className="flex h-screen overflow-hidden bg-[#060608] text-zinc-100 font-sans selection:bg-white selection:text-black">
       
       {/* Left Sidebar Navigation */}
-      <aside className="w-full md:w-72 border-r border-white/10 bg-[#09090b] md:min-h-screen flex flex-col sticky top-0 md:h-screen z-50">
+      <aside className="w-64 shrink-0 border-r border-white/10 bg-[#09090b] h-screen overflow-y-auto flex flex-col">
         <div className="p-7 border-b border-white/10">
           <div className="flex items-center gap-3.5">
             <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
@@ -318,8 +444,8 @@ export default function AdminDashboardPage() {
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 p-8 md:p-12 lg:p-16 h-screen overflow-y-auto">
+      {/* Main Content Area — min-h-0 is REQUIRED so flex child can shrink and overflow-y-auto creates a real scroll region */}
+      <main className="flex-1 min-h-0 overflow-y-auto p-8 md:p-12 lg:p-16">
         <div className="max-w-6xl mx-auto space-y-8">
         
         {/* TAB: ABOUT */}
@@ -371,7 +497,7 @@ export default function AdminDashboardPage() {
                   required
                   value={aboutForm.title}
                   onChange={(e) => setAboutForm({ ...aboutForm, title: e.target.value })}
-                  placeholder="Senior Software Development Engineer"
+                  placeholder="Software Developer & System Designer"
                   className="w-full bg-[#111116] border border-white/10 rounded-xl py-3.5 px-4 text-sm font-sans focus:border-white focus:ring-1 focus:ring-white outline-none text-white transition-all"
                 />
               </div>
@@ -460,7 +586,7 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="bg-[#0b0b0e] border border-white/10 rounded-2xl p-7 h-fit shadow-xl">
               <h2 className="text-base font-bold tracking-tight text-white mb-5 uppercase flex items-center gap-2">
-                <Plus className="w-5 h-5 text-emerald-400" /> Add Experience
+                <Plus className="w-5 h-5 text-emerald-400" /> {editingExpId ? "Edit Experience" : "Add Experience"}
               </h2>
               <form onSubmit={handleAddExp} className="space-y-5">
                 <div>
@@ -497,6 +623,16 @@ export default function AdminDashboardPage() {
                   />
                 </div>
                 <div>
+                  <label className="block text-xs font-mono text-zinc-300 uppercase mb-2 font-bold">Location</label>
+                  <input
+                    type="text"
+                    value={newExp.location}
+                    onChange={(e) => setNewExp({ ...newExp, location: e.target.value })}
+                    placeholder="e.g. Remote, San Francisco, CA"
+                    className="w-full bg-[#111116] border border-white/10 rounded-xl py-3 px-4 text-sm font-sans focus:border-white outline-none text-white"
+                  />
+                </div>
+                <div>
                   <label className="block text-xs font-mono text-zinc-300 uppercase mb-2 font-bold">Description</label>
                   <textarea
                     required
@@ -509,10 +645,22 @@ export default function AdminDashboardPage() {
                 </div>
                 <button
                   type="submit"
-                  className="w-full py-3.5 bg-white text-black font-mono text-xs uppercase font-extrabold rounded-xl hover:bg-zinc-200 transition-all"
+                  className="w-full py-3.5 bg-white text-black font-mono text-xs uppercase font-extrabold rounded-xl hover:bg-zinc-200 transition-all flex items-center justify-center gap-2"
                 >
-                  Add Experience Entry
+                  {editingExpId ? "Save Changes" : "Add Experience Entry"}
                 </button>
+                {editingExpId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingExpId(null);
+                      setNewExp({ company: "", role: "", period: "", location: "", description: "", skillsUsed: "" });
+                    }}
+                    className="w-full py-2 bg-transparent border border-white/10 text-white/70 font-mono text-xs uppercase font-bold rounded-xl hover:bg-white/5 transition-all"
+                  >
+                    Cancel Edit
+                  </button>
+                )}
               </form>
             </div>
 
@@ -531,9 +679,14 @@ export default function AdminDashboardPage() {
                         <p className="text-xs font-mono text-zinc-400 mt-1">{exp.period}</p>
                         <p className="text-sm text-zinc-300 mt-3 font-normal leading-relaxed">{exp.description}</p>
                       </div>
-                      <button onClick={() => handleDeleteExp(exp.id)} className="text-zinc-500 hover:text-red-400 p-2 transition-colors">
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      <div className="flex flex-col gap-2">
+                        <button onClick={() => handleEditClickExp(exp)} className="text-zinc-500 hover:text-emerald-400 p-2 transition-colors">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                        </button>
+                        <button onClick={() => handleDeleteExp(exp.id)} className="text-zinc-500 hover:text-red-400 p-2 transition-colors">
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -706,7 +859,14 @@ export default function AdminDashboardPage() {
                   <p className="text-[11px] text-zinc-500 font-mono mt-1.5">Fetches total problems solved (Easy/Medium/Hard), streak, and global ranking.</p>
                 </div>
 
-                <div className="md:col-span-2 flex justify-end">
+                <div className="md:col-span-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  {savedNotice ? (
+                    <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-xl flex items-center gap-2 font-bold animate-pulse">
+                      <CheckCircle className="w-4 h-4 text-emerald-400" /> {savedNotice}
+                    </span>
+                  ) : (
+                    <span />
+                  )}
                   <button
                     type="submit"
                     className="py-3 px-8 bg-white text-black font-mono text-xs uppercase font-extrabold rounded-xl hover:bg-zinc-200 transition-all shadow-md flex items-center gap-2"
@@ -720,7 +880,7 @@ export default function AdminDashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="bg-[#0b0b0e] border border-white/10 rounded-2xl p-7 h-fit shadow-xl">
                 <h2 className="text-base font-bold tracking-tight text-white mb-5 uppercase flex items-center gap-2">
-                  <Plus className="w-5 h-5 text-emerald-400" /> Add Custom Milestone
+                  <Plus className="w-5 h-5 text-emerald-400" /> {editingAchId ? "Edit Achievement" : "Add Custom Milestone"}
                 </h2>
               <form onSubmit={handleAddAch} className="space-y-4">
                 <div>
@@ -773,8 +933,17 @@ export default function AdminDashboardPage() {
                   type="submit"
                   className="w-full py-3.5 bg-white text-black font-mono text-xs uppercase font-extrabold rounded-xl hover:bg-zinc-200 transition-all"
                 >
-                  Add Achievement
+                  {editingAchId ? "Save Changes" : "Add Achievement"}
                 </button>
+                {editingAchId && (
+                  <button
+                    type="button"
+                    onClick={() => { setEditingAchId(null); setNewAch({ title: "", platform: "LeetCode", stats: "", linkUrl: "", badgeUrl: "" }); }}
+                    className="w-full py-2 bg-transparent border border-white/10 text-white/70 font-mono text-xs uppercase font-bold rounded-xl hover:bg-white/5 transition-all"
+                  >
+                    Cancel Edit
+                  </button>
+                )}
               </form>
             </div>
 
@@ -796,9 +965,14 @@ export default function AdminDashboardPage() {
                       </div>
                       <p className="text-sm text-zinc-400 font-mono mt-2">{ach.stats}</p>
                     </div>
-                    <button onClick={() => handleDeleteAch(ach.id)} className="text-zinc-500 hover:text-red-400 p-2 transition-colors">
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      <button onClick={() => handleEditClickAch(ach)} className="text-zinc-500 hover:text-emerald-400 p-2 transition-colors" title="Edit">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDeleteAch(ach.id)} className="text-zinc-500 hover:text-red-400 p-2 transition-colors" title="Delete">
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
@@ -812,9 +986,14 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="bg-[#0b0b0e] border border-white/10 rounded-2xl p-7 h-fit shadow-xl">
               <h2 className="text-base font-bold tracking-tight text-white mb-5 uppercase flex items-center gap-2">
-                <Plus className="w-5 h-5 text-emerald-400" /> Publish Project
+                <Plus className="w-5 h-5 text-emerald-400" /> {editingProjectId ? "Edit Project" : "Publish Project"}
               </h2>
               <form onSubmit={handleAddProject} className="space-y-4">
+                {editingProjectId && (
+                  <div className="flex items-center gap-2 text-xs font-mono text-amber-400 bg-amber-400/10 border border-amber-400/20 px-3 py-2 rounded-lg">
+                    <Pencil className="w-3.5 h-3.5" /> Editing existing project
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-mono text-zinc-300 uppercase mb-2 font-bold">Project Title</label>
                   <input
@@ -869,25 +1048,73 @@ export default function AdminDashboardPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-mono text-zinc-300 uppercase mb-2 font-bold">Project Image URL / Cover Photo</label>
+                  <label className="block text-xs font-mono text-zinc-300 uppercase mb-2 font-bold flex items-center justify-between">
+                    <span>Project Images Gallery ({projectImages.length})</span>
+                    <span className="text-[10px] text-emerald-400 font-normal font-mono">Multiple Images Supported</span>
+                  </label>
+
+                  {/* Thumbnail list of added project images */}
+                  {projectImages.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2.5 mb-3 p-3 bg-[#111116] border border-white/10 rounded-xl max-h-48 overflow-y-auto">
+                      {projectImages.map((img, imgIdx) => (
+                        <div key={imgIdx} className="relative group aspect-video rounded-lg overflow-hidden border border-white/20">
+                          <img src={img} alt={`Preview ${imgIdx + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setProjectImages(prev => prev.filter((_, idx) => idx !== imgIdx))}
+                            className="absolute top-1 right-1 bg-black/80 text-white p-1 rounded-full hover:bg-red-500 transition-colors"
+                            title="Remove image"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                          <span className="absolute bottom-1 left-1 bg-black/80 text-white text-[9px] font-mono px-1.5 py-0.5 rounded">
+                            0{imgIdx + 1}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="space-y-2">
-                    <input
-                      type="text"
-                      value={newProject.imageUrl}
-                      onChange={(e) => setNewProject({ ...newProject, imageUrl: e.target.value })}
-                      placeholder="https://... or upload file below"
-                      className="w-full bg-[#111116] border border-white/10 rounded-xl py-3 px-4 text-sm font-mono focus:border-white outline-none text-white"
-                    />
+                    {/* Add by image URL */}
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={singleImgUrlInput}
+                        onChange={(e) => setSingleImgUrlInput(e.target.value)}
+                        placeholder="Paste image URL (https://...)"
+                        className="flex-1 bg-[#111116] border border-white/10 rounded-xl py-2.5 px-3 text-xs font-mono focus:border-white outline-none text-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (singleImgUrlInput.trim()) {
+                            setProjectImages(prev => [...prev, singleImgUrlInput.trim()]);
+                            setSingleImgUrlInput("");
+                          }
+                        }}
+                        className="px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white font-mono text-xs rounded-xl font-bold transition-all"
+                      >
+                        + Add
+                      </button>
+                    </div>
+
+                    {/* Upload multiple files */}
                     <input
                       type="file"
                       accept="image/*"
+                      multiple
                       onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
+                        const files = Array.from(e.target.files || []);
+                        files.forEach((file) => {
                           const reader = new FileReader();
-                          reader.onloadend = () => setNewProject({ ...newProject, imageUrl: reader.result as string });
+                          reader.onloadend = () => {
+                            if (reader.result) {
+                              setProjectImages((prev) => [...prev, reader.result as string]);
+                            }
+                          };
                           reader.readAsDataURL(file);
-                        }
+                        });
                       }}
                       className="w-full bg-[#111116] border border-white/10 rounded-xl p-2.5 text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-mono file:bg-white/10 file:text-white hover:file:bg-white/20"
                     />
@@ -907,8 +1134,22 @@ export default function AdminDashboardPage() {
                   type="submit"
                   className="w-full py-3.5 bg-white text-black font-mono text-xs uppercase font-extrabold rounded-xl hover:bg-zinc-200 transition-all"
                 >
-                  Publish Project
+                  {editingProjectId ? "Save Changes" : "Publish Project"}
                 </button>
+                {editingProjectId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingProjectId(null);
+                      setNewProject({ title: "", description: "", techStack: "", liveUrl: "", githubUrl: "", imageUrl: "", featured: false });
+                      setProjectImages([]);
+                      setSingleImgUrlInput("");
+                    }}
+                    className="w-full py-2 bg-transparent border border-white/10 text-white/70 font-mono text-xs uppercase font-bold rounded-xl hover:bg-white/5 transition-all"
+                  >
+                    Cancel Edit
+                  </button>
+                )}
               </form>
             </div>
 
@@ -940,9 +1181,14 @@ export default function AdminDashboardPage() {
                           ))}
                         </div>
                       </div>
-                      <button onClick={() => handleDeleteProject(project.id)} className="text-zinc-500 hover:text-red-400 p-2 transition-colors">
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      <div className="flex flex-col gap-2">
+                        <button onClick={() => handleEditClickProject(project)} className="text-zinc-500 hover:text-emerald-400 p-2 transition-colors" title="Edit">
+                          <Pencil className="w-5 h-5" />
+                        </button>
+                        <button onClick={() => handleDeleteProject(project.id)} className="text-zinc-500 hover:text-red-400 p-2 transition-colors" title="Delete">
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -1112,7 +1358,7 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="bg-[#0b0b0e] border border-white/10 rounded-2xl p-7 h-fit shadow-xl">
               <h2 className="text-base font-bold tracking-tight text-white mb-5 uppercase flex items-center gap-2">
-                <Plus className="w-5 h-5 text-emerald-400" /> Add Certification
+                <Plus className="w-5 h-5 text-emerald-400" /> {editingCertId ? "Edit Certification" : "Add Certification"}
               </h2>
               <form onSubmit={handleAddCert} className="space-y-4">
                 <div>
@@ -1187,8 +1433,17 @@ export default function AdminDashboardPage() {
                   type="submit"
                   className="w-full py-3.5 bg-white text-black font-mono text-xs uppercase font-extrabold rounded-xl hover:bg-zinc-200 transition-all"
                 >
-                  Add Certification
+                  {editingCertId ? "Save Changes" : "Add Certification"}
                 </button>
+                {editingCertId && (
+                  <button
+                    type="button"
+                    onClick={() => { setEditingCertId(null); setNewCert({ title: "", issuer: "", issueDate: "", credentialId: "", credentialUrl: "", imageUrl: "" }); }}
+                    className="w-full py-2 bg-transparent border border-white/10 text-white/70 font-mono text-xs uppercase font-bold rounded-xl hover:bg-white/5 transition-all"
+                  >
+                    Cancel Edit
+                  </button>
+                )}
               </form>
             </div>
 
@@ -1201,13 +1456,18 @@ export default function AdminDashboardPage() {
               ) : (
                 certifications.map((cert) => (
                   <div key={cert.id} className="bg-[#0b0b0e] border border-white/10 rounded-2xl p-6 flex items-center justify-between">
-                    <div>
+                    <div className="flex-1">
                       <h3 className="font-bold text-white text-base">{cert.title}</h3>
                       <p className="text-xs text-zinc-400 font-mono mt-1">{cert.issuer} • Issued {cert.issueDate}</p>
                     </div>
-                    <button onClick={() => handleDeleteCert(cert.id)} className="text-zinc-500 hover:text-red-400 p-2 transition-colors">
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+                    <div className="flex flex-col gap-2 ml-4">
+                      <button onClick={() => handleEditClickCert(cert)} className="text-zinc-500 hover:text-emerald-400 p-2 transition-colors" title="Edit">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDeleteCert(cert.id)} className="text-zinc-500 hover:text-red-400 p-2 transition-colors" title="Delete">
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 ))
               )}

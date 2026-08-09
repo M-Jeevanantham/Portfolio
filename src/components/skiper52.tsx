@@ -71,28 +71,141 @@ const DEFAULT_CERTIFICATIONS: CertificationItem[] = [
   },
 ];
 
+const FALLBACK_CERT_IMAGES = [
+  "https://images.unsplash.com/photo-1607799279861-4dd421887fb3?q=80&w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop"
+];
+
+function getCertImg(cert: CertificationItem, idx: number) {
+  if (cert.imageUrl && cert.imageUrl.trim() !== "") {
+    return cert.imageUrl;
+  }
+  return FALLBACK_CERT_IMAGES[idx % FALLBACK_CERT_IMAGES.length];
+}
+
 export interface Skiper52Props {
   certifications?: CertificationItem[];
 }
 
 export function Skiper52Certifications({
-  certifications = DEFAULT_CERTIFICATIONS,
+  certifications,
 }: Skiper52Props) {
-  const fetched = certifications && certifications.length > 0 ? certifications : [];
-  const existingTitles = new Set(fetched.map((c) => c.title.toLowerCase().trim()));
-  const extraDefaults = DEFAULT_CERTIFICATIONS.filter(
-    (d) => !existingTitles.has(d.title.toLowerCase().trim())
-  );
-  
-  const displayCerts = [...fetched, ...extraDefaults];
+  const displayCerts = certifications !== undefined ? certifications : DEFAULT_CERTIFICATIONS;
 
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const [selectedCert, setSelectedCert] = useState<CertificationItem | null>(null);
 
+  if (displayCerts.length === 0) {
+    return (
+      <div className="w-full py-12 text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
+        <Award className="w-10 h-10 text-white/30 mx-auto mb-3" />
+        <p className="text-zinc-400 text-sm font-mono uppercase tracking-wider">
+          No Certifications Added Yet
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full relative py-8">
-      {/* Skiper52 Accordion Expanding Image Slider — Hidden Scrollbar & Silver Borders */}
-      <div className="flex flex-row items-center justify-center gap-2 sm:gap-3 md:gap-4 overflow-x-auto py-6 px-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden min-h-[460px] md:min-h-[520px]">
+    <div className="w-full relative py-4 sm:py-8">
+      {/* Mobile Card List View (< sm screens) */}
+      <div className="flex sm:hidden flex-col space-y-4 px-2 w-full">
+        {displayCerts.map((cert, index) => (
+          <div
+            key={cert.id || index}
+            className="relative w-full rounded-2xl overflow-hidden border border-white/20 bg-zinc-950 p-5 shadow-xl flex flex-col justify-between"
+          >
+            {/* Ambient Background Glow */}
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/40 via-zinc-900/60 to-black pointer-events-none" />
+
+            {/* Card Content Wrapper */}
+            <div className="relative z-10 space-y-4">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-white/15 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white">
+                    <Award className="w-4 h-4 text-zinc-300" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono text-zinc-300 uppercase tracking-wider block font-bold">
+                      Verified Certificate
+                    </span>
+                    <p className="text-white/80 text-[11px] font-mono">{cert.issuer}</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono text-white/70 bg-black/60 px-2.5 py-1 rounded-full border border-white/10 flex items-center gap-1">
+                  <Calendar className="w-3 h-3 text-zinc-300" />
+                  {cert.issueDate}
+                </span>
+              </div>
+
+              {/* Certificate Image Banner Display */}
+              <div
+                onClick={() => setSelectedCert(cert)}
+                className="relative w-full h-44 rounded-xl overflow-hidden border border-white/20 shadow-md group cursor-pointer"
+              >
+                <img
+                  src={getCertImg(cert, index)}
+                  alt={cert.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = FALLBACK_CERT_IMAGES[index % FALLBACK_CERT_IMAGES.length];
+                  }}
+                />
+                <div className="absolute inset-0 bg-black/25 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                  <span className="bg-black/80 backdrop-blur-md text-white text-[10px] font-mono px-3 py-1.5 rounded-full border border-white/25 flex items-center gap-1.5 shadow-lg">
+                    <Eye className="w-3.5 h-3.5 text-zinc-300" /> View Full Image
+                  </span>
+                </div>
+              </div>
+
+              {/* Details & Title */}
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-white uppercase tracking-tight leading-snug" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                  {cert.title}
+                </h3>
+
+                {cert.credentialId && (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/75 border border-white/15 text-[10px] font-mono text-zinc-300">
+                    <ShieldCheck className="w-3.5 h-3.5 text-zinc-300" />
+                    <span>ID: {cert.credentialId}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions Footer */}
+              <div className="pt-3 border-t border-white/15 flex items-center justify-between gap-2">
+                <button
+                  onClick={() => setSelectedCert(cert)}
+                  className="px-3.5 py-1.5 rounded-lg bg-black/75 border border-white/20 hover:border-white/50 text-white text-[11px] font-mono font-semibold flex items-center gap-1.5"
+                >
+                  <Eye className="w-3.5 h-3.5 text-zinc-300" />
+                  <span>Preview</span>
+                </button>
+
+                {cert.credentialUrl && (
+                  <a
+                    href={cert.credentialUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3.5 py-1.5 rounded-lg bg-white text-black font-extrabold text-[11px] font-mono flex items-center gap-1 shadow-md"
+                  >
+                    <span>Verify Link</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop/Tablet 3D Accordion Expanding Image Slider (>= sm screens) */}
+      <div className="hidden sm:flex flex-row items-center justify-center gap-3 md:gap-4 overflow-x-auto py-6 px-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden min-h-[460px] md:min-h-[520px]">
         {displayCerts.map((cert, index) => {
           const isActive = activeIndex === index;
           return (
@@ -104,24 +217,24 @@ export function Skiper52Certifications({
               transition={{ type: "spring", stiffness: 170, damping: 24, mass: 0.9 }}
               className={`relative rounded-[2.2rem] md:rounded-[2.8rem] overflow-hidden cursor-pointer flex-shrink-0 transition-all duration-500 border ${
                 isActive
-                  ? "w-[300px] sm:w-[440px] md:w-[560px] lg:w-[640px] h-[420px] md:h-[480px] border-white/30 shadow-[0_20px_60px_rgba(255,255,255,0.08)] bg-[#12131e]"
-                  : "w-16 sm:w-20 md:w-24 lg:w-28 h-[420px] md:h-[480px] border-white/10 hover:border-white/30 bg-[#0c0d14]"
+                  ? "w-[440px] md:w-[560px] lg:w-[640px] h-[440px] md:h-[480px] border-white/30 shadow-[0_20px_60px_rgba(255,255,255,0.08)] bg-[#12131e]"
+                  : "w-20 md:w-24 lg:w-28 h-[440px] md:h-[480px] border-white/10 hover:border-white/30 bg-[#0c0d14]"
               }`}
             >
               {/* Background Image */}
               <img
-                src={cert.imageUrl || "https://images.unsplash.com/photo-1607799279861-4dd421887fb3?q=80&w=1200&auto=format&fit=crop"}
+                src={getCertImg(cert, index)}
                 alt={cert.title}
                 className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ${
-                  isActive ? "brightness-[0.45] scale-105" : "brightness-[0.3] grayscale"
+                  isActive ? "brightness-[0.75] scale-105" : "brightness-[0.4] grayscale"
                 }`}
                 onError={(e) => {
-                  (e.currentTarget as HTMLElement).style.display = "none";
+                  (e.currentTarget as HTMLImageElement).src = FALLBACK_CERT_IMAGES[index % FALLBACK_CERT_IMAGES.length];
                 }}
               />
 
               {/* Ambient Dark Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/20 pointer-events-none" />
 
               {/* Collapsed View (Vertical Pill Label) */}
               {!isActive && (
@@ -129,7 +242,7 @@ export function Skiper52Certifications({
                   <span className="text-xs font-mono text-zinc-300 font-bold bg-black/70 px-2 py-1 rounded-full border border-white/10">
                     0{index + 1}
                   </span>
-                  <div className="writing-mode-vertical rotate-180 text-white/70 font-mono text-xs tracking-wider uppercase font-semibold truncate max-h-[260px]">
+                  <div className="[writing-mode:vertical-rl] text-white/70 font-mono text-xs tracking-wider uppercase font-semibold truncate max-h-[260px] select-none">
                     {cert.title}
                   </div>
                   <Award className="w-5 h-5 text-white/50" />

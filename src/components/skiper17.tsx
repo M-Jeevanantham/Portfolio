@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useRef } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowUpRight } from "lucide-react";
+import React, { useRef, useState, useEffect } from "react";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { ArrowUpRight, ChevronLeft, ChevronRight, Image as ImageIcon } from "lucide-react";
 
 const GithubIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -21,6 +21,7 @@ export interface ProjectItem {
   liveUrl?: string;
   featured?: boolean;
   image?: string;
+  images?: string[];
 }
 
 const DEFAULT_PROJECTS: ProjectItem[] = [
@@ -33,6 +34,10 @@ const DEFAULT_PROJECTS: ProjectItem[] = [
     githubUrl: "https://github.com",
     liveUrl: "https://example.com",
     image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1600&auto=format&fit=crop",
+    images: [
+      "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1600&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1600&auto=format&fit=crop"
+    ],
   },
   {
     id: "2",
@@ -43,26 +48,6 @@ const DEFAULT_PROJECTS: ProjectItem[] = [
     githubUrl: "https://github.com",
     liveUrl: "https://example.com",
     image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1600&auto=format&fit=crop",
-  },
-  {
-    id: "3",
-    title: "Boutique — Enterprise E-Commerce Platform",
-    category: "Web Application",
-    description: "Architected high-conversion full-stack store with payment webhooks integration, dynamic cart state management, zero-downtime database schema, and custom administrative telemetry dashboard.",
-    tags: "React, Node.js, Express, PostgreSQL, Prisma, Stripe API, Redis",
-    githubUrl: "https://github.com",
-    liveUrl: "https://example.com",
-    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=1600&auto=format&fit=crop",
-  },
-  {
-    id: "4",
-    title: "Nexus AI — Autonomous Agent Platform",
-    category: "AI & Systems Architecture",
-    description: "Next-gen distributed AI orchestration pipeline connecting LLM function tools, vector search databases, real-time streaming sockets, and automated code review workflows.",
-    tags: "TypeScript, Python, FastAPI, Next.js, LangChain, Pinecone, Tailwind",
-    githubUrl: "https://github.com",
-    liveUrl: "https://example.com",
-    image: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1600&auto=format&fit=crop",
   },
 ];
 
@@ -89,73 +74,159 @@ function StackedCard({
   const scale = useTransform(scrollYProgress, [0, 1], [0.95, 1]);
 
   const tagsList = project.tags ? project.tags.split(",") : [project.category];
-  const bgImageUrl = project.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1600&auto=format&fit=crop";
+  
+  // Resolve all images available for this project
+  const allImages: string[] = (project.images && project.images.length > 0)
+    ? project.images
+    : project.image
+    ? [project.image]
+    : ["https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1600&auto=format&fit=crop"];
+
+  const [activeImgIndex, setActiveImgIndex] = useState(0);
+
+  // Auto-play slides if multiple images
+  useEffect(() => {
+    if (allImages.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveImgIndex((prev) => (prev + 1) % allImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [allImages.length]);
 
   const padIndex = String(index + 1).padStart(2, "0");
   const padTotal = String(totalCards).padStart(2, "0");
 
+  const currentBgImage = allImages[activeImgIndex] || allImages[0];
+
+  const handleNextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveImgIndex((prev) => (prev + 1) % allImages.length);
+  };
+
+  const handlePrevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveImgIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
+  };
+
   return (
     <div
       ref={containerRef}
-      className="h-screen sticky top-0 flex items-center justify-center p-4"
+      className="h-screen sticky top-0 flex items-center justify-center p-3 sm:p-4"
       style={{ zIndex: index + 1 }}
     >
       <motion.div
         style={{
           scale,
-          top: `calc(7% + ${index * 25}px)`,
+          top: `calc(4% + ${index * 16}px)`,
         }}
-        className="relative w-full max-w-[1200px] h-[72vh] md:h-[76vh] rounded-[2.5rem] border border-white/20 overflow-hidden shadow-2xl bg-zinc-900 p-6 md:p-10 flex flex-col justify-between transform-gpu will-change-transform hover:border-white/40 transition-colors duration-300"
+        className="relative w-full max-w-[1200px] h-[78vh] sm:h-[75vh] md:h-[76vh] rounded-[1.8rem] sm:rounded-[2.5rem] border border-white/20 overflow-hidden shadow-2xl bg-zinc-900 p-4 sm:p-6 md:p-10 flex flex-col justify-between transform-gpu will-change-transform hover:border-white/40 transition-colors duration-300"
       >
-        {/* Background Image with Dark Vignette */}
-        <img
-          src={bgImageUrl}
-          alt={project.title}
-          className="absolute inset-0 w-full h-full object-cover brightness-50 -z-10"
-          onError={(e) => {
-            (e.currentTarget as HTMLElement).style.display = "none";
-          }}
-        />
+        {/* Background Image Carousel with Smooth Fade */}
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={currentBgImage}
+            src={currentBgImage}
+            alt={`${project.title} - Image ${activeImgIndex + 1}`}
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 0.5, scale: 1.0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+            className="absolute inset-0 w-full h-full object-cover brightness-75 -z-10"
+            onError={(e) => {
+              (e.currentTarget as HTMLElement).style.display = "none";
+            }}
+          />
+        </AnimatePresence>
 
         {/* Ambient Dark Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none -z-10" />
 
         {/* Card Content Header */}
-        <div className="flex justify-between items-center z-10 border-b border-white/15 pb-4">
-          <span className="text-xs font-mono uppercase tracking-widest text-zinc-300 bg-black/70 px-3.5 py-1 rounded-full border border-white/10">
-            0{padIndex} / 0{padTotal}
-          </span>
-          <span className="text-xs font-mono text-zinc-400 font-medium">Scroll Stack</span>
+        <div className="flex items-center justify-between z-10 border-b border-white/15 pb-2.5 sm:pb-4 gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap">
+            <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider text-zinc-300 bg-black/70 px-2.5 py-0.5 sm:py-1 rounded-full border border-white/10 whitespace-nowrap">
+              0{padIndex} / 0{padTotal}
+            </span>
+            {allImages.length > 1 && (
+              <span className="text-[10px] sm:text-xs font-mono text-emerald-400 bg-emerald-400/10 px-2.5 py-0.5 sm:py-1 rounded-full border border-emerald-400/20 flex items-center gap-1 font-semibold whitespace-nowrap">
+                <ImageIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                {activeImgIndex + 1}/{allImages.length}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] sm:text-xs font-mono text-zinc-400 font-medium hidden xs:inline">Scroll Stack</span>
         </div>
 
+        {/* Multiple Images Carousel Controls (Positioned at top 35% so they never cover title) */}
+        {allImages.length > 1 && (
+          <div className="absolute top-[35%] inset-x-2 sm:inset-x-4 flex items-center justify-between pointer-events-none z-20 -translate-y-1/2">
+            <button
+              onClick={handlePrevImage}
+              aria-label="Previous image"
+              className="pointer-events-auto p-2 sm:p-3 rounded-full bg-black/70 border border-white/20 text-white hover:bg-white hover:text-black transition-all backdrop-blur-md shadow-lg active:scale-95"
+            >
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+            <button
+              onClick={handleNextImage}
+              aria-label="Next image"
+              className="pointer-events-auto p-2 sm:p-3 rounded-full bg-black/70 border border-white/20 text-white hover:bg-white hover:text-black transition-all backdrop-blur-md shadow-lg active:scale-95"
+            >
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+          </div>
+        )}
+
         {/* Card Content Footer */}
-        <div className="z-10 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-5 md:p-6 rounded-2xl space-y-3">
-          <h2 className="text-2xl md:text-4xl font-extrabold text-white uppercase tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        <div className="z-10 bg-gradient-to-t from-black/95 via-black/80 to-transparent p-3 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl space-y-2 sm:space-y-3">
+          
+          {/* Multiple Image Thumbnail Indicator Bar */}
+          {allImages.length > 1 && (
+            <div className="flex items-center gap-1.5 mb-1 sm:mb-2">
+              {allImages.map((img, imgIdx) => (
+                <button
+                  key={imgIdx}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImgIndex(imgIdx);
+                  }}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    activeImgIndex === imgIdx
+                      ? "w-6 sm:w-8 bg-white"
+                      : "w-2 bg-white/30 hover:bg-white/60"
+                  }`}
+                  aria-label={`Select image ${imgIdx + 1}`}
+                />
+              ))}
+            </div>
+          )}
+
+          <h2 className="text-xl sm:text-2xl md:text-4xl font-extrabold text-white uppercase tracking-tight leading-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             {project.title}
           </h2>
-          <p className="text-zinc-300 text-xs md:text-sm font-light leading-relaxed max-w-4xl line-clamp-2 md:line-clamp-3">
+          <p className="text-zinc-300 text-[11px] sm:text-xs md:text-sm font-light leading-relaxed max-w-4xl line-clamp-2 md:line-clamp-3">
             {project.description}
           </p>
 
-          <div className="pt-3 border-t border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex flex-wrap gap-1.5 max-w-2xl">
-              {tagsList.map((tag, tIdx) => (
+          <div className="pt-2 sm:pt-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
+            <div className="flex flex-wrap gap-1 sm:gap-1.5 max-w-2xl max-h-16 sm:max-h-none overflow-hidden">
+              {tagsList.slice(0, 6).map((tag, tIdx) => (
                 <span
                   key={tIdx}
-                  className="px-2.5 py-1 bg-white/[0.08] border border-white/15 rounded-lg text-zinc-200 text-xs font-mono font-medium"
+                  className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-white/[0.08] border border-white/15 rounded-md sm:rounded-lg text-zinc-200 text-[10px] sm:text-xs font-mono font-medium whitespace-nowrap"
                 >
                   {tag.trim()}
                 </span>
               ))}
             </div>
 
-            <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               {project.githubUrl && (
                 <a
                   href={project.githubUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3.5 py-1.5 bg-black/70 border border-white/20 hover:border-white/50 rounded-xl text-white text-xs font-mono font-semibold flex items-center gap-2 transition-colors"
+                  className="px-3 py-1.5 bg-black/70 border border-white/20 hover:border-white/50 rounded-lg sm:rounded-xl text-white text-[11px] sm:text-xs font-mono font-semibold flex items-center gap-1.5 transition-colors"
                 >
                   <GithubIcon className="w-3.5 h-3.5" />
                   <span>Source</span>
@@ -166,7 +237,7 @@ function StackedCard({
                   href={project.liveUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3.5 py-1.5 bg-white text-black font-extrabold rounded-xl text-xs font-mono flex items-center gap-1.5 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.4)]"
+                  className="px-3 py-1.5 bg-white text-black font-extrabold rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-mono flex items-center gap-1 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.4)]"
                 >
                   <span>Live Demo</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
@@ -181,15 +252,9 @@ function StackedCard({
 }
 
 export function Skiper17ProjectCardStack({
-  projects = DEFAULT_PROJECTS,
+  projects,
 }: Skiper17Props) {
-  const fetched = projects && projects.length > 0 ? projects : [];
-  const existingTitles = new Set(fetched.map((p) => p.title.toLowerCase().trim()));
-  const extraDefaults = DEFAULT_PROJECTS.filter(
-    (d) => !existingTitles.has(d.title.toLowerCase().trim())
-  );
-  
-  const displayProjects = [...fetched, ...extraDefaults];
+  const displayProjects = projects !== undefined ? projects : DEFAULT_PROJECTS;
 
   return (
     <div className="relative pb-[20vh]">

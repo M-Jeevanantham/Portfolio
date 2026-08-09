@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, withDB } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 
 export async function GET() {
   try {
-    const skills = await prisma.skill.findMany({
+    const skills = await withDB(() => prisma.skill.findMany({
       orderBy: { proficiency: "desc" },
-    });
+    }));
     return NextResponse.json(skills);
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch skills" }, { status: 500 });
@@ -28,14 +28,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Name and category are required" }, { status: 400 });
     }
 
-    const skill = await prisma.skill.create({
+    const skill = await withDB(() => prisma.skill.create({
       data: {
         name,
         category,
         proficiency: Number(proficiency) || 80,
         icon: icon || null,
       },
-    });
+    }));
 
     return NextResponse.json(skill, { status: 201 });
   } catch (error) {
