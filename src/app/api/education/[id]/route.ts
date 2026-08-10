@@ -17,3 +17,31 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
   }
 }
+
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  try {
+    const { id } = await params;
+    const body = await req.json();
+    const { institution, degree, period, location, grade, description } = body;
+
+    const updated = await withDB(() =>
+      prisma.education.update({
+        where: { id },
+        data: {
+          institution,
+          degree,
+          period,
+          location: location || null,
+          grade: grade || null,
+          description: description || null,
+        },
+      })
+    );
+    return NextResponse.json(updated);
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to update education entry" }, { status: 500 });
+  }
+}

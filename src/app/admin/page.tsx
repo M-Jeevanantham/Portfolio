@@ -54,6 +54,7 @@ export default function AdminDashboardPage() {
   const [newExp, setNewExp] = useState({ company: "", role: "", period: "", location: "", description: "", skillsUsed: "" });
   const [editingExpId, setEditingExpId] = useState<string | null>(null);
   const [newEdu, setNewEdu] = useState({ institution: "", degree: "", period: "", location: "", grade: "", description: "" });
+  const [editingEduId, setEditingEduId] = useState<string | null>(null);
   const [newAch, setNewAch] = useState({ title: "", platform: "LeetCode", stats: "", linkUrl: "", badgeUrl: "" });
   const [editingAchId, setEditingAchId] = useState<string | null>(null);
   const [newCert, setNewCert] = useState({ title: "", issuer: "", issueDate: "", credentialId: "", credentialUrl: "", imageUrl: "" });
@@ -257,18 +258,35 @@ export default function AdminDashboardPage() {
 
   const handleAddEdu = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("/api/education", {
-      method: "POST",
+    const isEditing = !!editingEduId;
+    const url = isEditing ? `/api/education/${editingEduId}` : "/api/education";
+    const method = isEditing ? "PUT" : "POST";
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newEdu),
     });
     if (res.ok) {
       setNewEdu({ institution: "", degree: "", period: "", location: "", grade: "", description: "" });
+      setEditingEduId(null);
       fetchAllData();
     }
   };
 
+  const handleEditClickEdu = (edu: any) => {
+    setEditingEduId(edu.id);
+    setNewEdu({
+      institution: edu.institution || "",
+      degree: edu.degree || "",
+      period: edu.period || "",
+      location: edu.location || "",
+      grade: edu.grade || "",
+      description: edu.description || "",
+    });
+  };
+
   const handleDeleteEdu = async (id: string) => {
+    if (!confirm("Delete this education entry?")) return;
     const res = await fetch(`/api/education/${id}`, { method: "DELETE" });
     if (res.ok) fetchAllData();
   };
@@ -700,9 +718,14 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="bg-[#0b0b0e] border border-white/10 rounded-2xl p-7 h-fit shadow-xl">
               <h2 className="text-base font-bold tracking-tight text-white mb-5 uppercase flex items-center gap-2">
-                <Plus className="w-5 h-5 text-emerald-400" /> Add Education
+                <Plus className="w-5 h-5 text-emerald-400" /> {editingEduId ? "Edit Education Entry" : "Add Education"}
               </h2>
               <form onSubmit={handleAddEdu} className="space-y-4">
+                {editingEduId && (
+                  <div className="flex items-center gap-2 text-xs font-mono text-amber-400 bg-amber-400/10 border border-amber-400/20 px-3 py-2 rounded-lg mb-2">
+                    <Pencil className="w-3.5 h-3.5" /> Editing existing entry
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-mono text-zinc-300 uppercase mb-2 font-bold">Institution</label>
                   <input
@@ -760,8 +783,20 @@ export default function AdminDashboardPage() {
                   type="submit"
                   className="w-full py-3.5 bg-white text-black font-mono text-xs uppercase font-extrabold rounded-xl hover:bg-zinc-200 transition-all"
                 >
-                  Add Education Entry
+                  {editingEduId ? "Save Changes" : "Add Education Entry"}
                 </button>
+                {editingEduId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingEduId(null);
+                      setNewEdu({ institution: "", degree: "", period: "", location: "", grade: "", description: "" });
+                    }}
+                    className="w-full py-2 bg-transparent border border-white/10 text-white/70 font-mono text-xs uppercase font-bold rounded-xl hover:bg-white/5 transition-all"
+                  >
+                    Cancel Edit
+                  </button>
+                )}
               </form>
             </div>
 
@@ -773,7 +808,7 @@ export default function AdminDashboardPage() {
                 </div>
               ) : (
                 education.map((edu) => (
-                  <div key={edu.id} className="bg-[#0b0b0e] border border-white/10 rounded-2xl p-6 shadow-md">
+                  <div key={edu.id} className="bg-[#0b0b0e] border border-white/10 rounded-2xl p-6 shadow-md hover:border-white/20 transition-all">
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <h3 className="font-bold text-white text-base">{edu.degree}</h3>
@@ -782,9 +817,14 @@ export default function AdminDashboardPage() {
                           {edu.period} {edu.grade && `• Grade: ${edu.grade}`} {edu.location && `• ${edu.location}`}
                         </p>
                       </div>
-                      <button onClick={() => handleDeleteEdu(edu.id)} className="text-zinc-500 hover:text-red-400 p-2 transition-colors">
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      <div className="flex flex-col gap-2">
+                        <button onClick={() => handleEditClickEdu(edu)} className="text-zinc-500 hover:text-emerald-400 p-2 transition-colors" title="Edit">
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDeleteEdu(edu.id)} className="text-zinc-500 hover:text-red-400 p-2 transition-colors" title="Delete">
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))
