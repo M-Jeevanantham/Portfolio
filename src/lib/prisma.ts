@@ -11,9 +11,20 @@ const globalForPrisma = globalThis as unknown as {
 
 export const getPrismaClient = (): PrismaClient => {
   if (!globalForPrisma.prisma) {
-    globalForPrisma.prisma = new PrismaClient({
-      log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    const client = new PrismaClient({
+      log: [{ emit: 'event', level: 'error' }],
     });
+
+    (client as any).$on?.('error', (e: any) => {
+      const msg = String(e?.message || e?.target || e || "");
+      if (msg.includes("kind: Closed") || msg.includes("Closed")) {
+        // Neon compute cold start — handled silently by withDB retry wrapper
+        return;
+      }
+      console.error("prisma:error", msg);
+    });
+
+    globalForPrisma.prisma = client;
   }
   return globalForPrisma.prisma;
 };

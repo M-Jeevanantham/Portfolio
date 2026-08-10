@@ -299,98 +299,94 @@ export default function Home() {
     return () => { window.removeEventListener("mousemove", move); cancelAnimationFrame(rafId); };
   }, [isReady]);
 
-// ─── Interactive Effects (Spotlight, 3D Tilt, Magnetic, Cursor Labels) ───
+  // ─── Interactive Effects (Spotlight, 3D Tilt, Magnetic, Cursor Labels) ───
   useEffect(() => {
     if (!isReady) return;
     const cleanupFns: Array<() => void> = [];
 
-    // 1. Spotlight Torch Effect
-    document.querySelectorAll<HTMLElement>("[data-spotlight]").forEach((el) => {
-      const handleMove = (e: MouseEvent) => {
-        const rect = el.getBoundingClientRect();
-        el.style.setProperty("--spotlight-x", `${e.clientX - rect.left}px`);
-        el.style.setProperty("--spotlight-y", `${e.clientY - rect.top}px`);
-      };
-      el.addEventListener("mousemove", handleMove);
-      cleanupFns.push(() => el.removeEventListener("mousemove", handleMove));
-    });
+    import("gsap").then(({ gsap }) => {
+      // 1. Spotlight Torch Effect
+      document.querySelectorAll<HTMLElement>("[data-spotlight]").forEach((el) => {
+        const handleMove = (e: MouseEvent) => {
+          const rect = el.getBoundingClientRect();
+          el.style.setProperty("--spotlight-x", `${e.clientX - rect.left}px`);
+          el.style.setProperty("--spotlight-y", `${e.clientY - rect.top}px`);
+        };
+        el.addEventListener("mousemove", handleMove);
+        cleanupFns.push(() => el.removeEventListener("mousemove", handleMove));
+      });
 
-    // 2. 3D Mouse Tilt Effect
-    document.querySelectorAll<HTMLElement>("[data-tilt]").forEach((el) => {
-      const strength = parseFloat(el.dataset.tiltStrength || "12");
-      const handleMove = async (e: MouseEvent) => {
-        const { gsap } = await import("gsap");
-        const rect = el.getBoundingClientRect();
-        const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
-        gsap.to(el, {
-          rotateX: -ny * strength,
-          rotateY: nx * strength,
-          transformPerspective: 1000,
-          duration: 0.4,
-          ease: "power2.out",
+      // 2. 3D Mouse Tilt Effect
+      document.querySelectorAll<HTMLElement>("[data-tilt]").forEach((el) => {
+        const strength = parseFloat(el.dataset.tiltStrength || "12");
+        const handleMove = (e: MouseEvent) => {
+          const rect = el.getBoundingClientRect();
+          const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+          const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+          gsap.to(el, {
+            rotateX: -ny * strength,
+            rotateY: nx * strength,
+            transformPerspective: 1000,
+            duration: 0.4,
+            ease: "power2.out",
+          });
+        };
+        const handleLeave = () => {
+          gsap.to(el, { rotateX: 0, rotateY: 0, duration: 0.7, ease: "elastic.out(1, 0.5)" });
+        };
+        el.addEventListener("mousemove", handleMove);
+        el.addEventListener("mouseleave", handleLeave);
+        cleanupFns.push(() => {
+          el.removeEventListener("mousemove", handleMove);
+          el.removeEventListener("mouseleave", handleLeave);
         });
-      };
-      const handleLeave = async () => {
-        const { gsap } = await import("gsap");
-        gsap.to(el, { rotateX: 0, rotateY: 0, duration: 0.7, ease: "elastic.out(1, 0.5)" });
-      };
-      el.addEventListener("mousemove", handleMove);
-      el.addEventListener("mouseleave", handleLeave);
-      cleanupFns.push(() => {
-        el.removeEventListener("mousemove", handleMove);
-        el.removeEventListener("mouseleave", handleLeave);
       });
-    });
 
-    // 3. Magnetic Hover Pull Buttons
-    document.querySelectorAll<HTMLElement>("[data-magnetic]").forEach((el) => {
-      const strength = parseFloat(el.dataset.magneticStrength || "0.35");
-      const handleMove = async (e: MouseEvent) => {
-        const { gsap } = await import("gsap");
-        const rect = el.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const dx = (e.clientX - cx) * strength;
-        const dy = (e.clientY - cy) * strength;
-        gsap.to(el, { x: dx, y: dy, duration: 0.35, ease: "power2.out" });
-      };
-      const handleLeave = async () => {
-        const { gsap } = await import("gsap");
-        gsap.to(el, { x: 0, y: 0, duration: 0.7, ease: "elastic.out(1, 0.4)" });
-      };
-      el.addEventListener("mousemove", handleMove);
-      el.addEventListener("mouseleave", handleLeave);
-      cleanupFns.push(() => {
-        el.removeEventListener("mousemove", handleMove);
-        el.removeEventListener("mouseleave", handleLeave);
+      // 3. Magnetic Hover Pull Buttons
+      document.querySelectorAll<HTMLElement>("[data-magnetic]").forEach((el) => {
+        const strength = parseFloat(el.dataset.magneticStrength || "0.35");
+        const handleMove = (e: MouseEvent) => {
+          const rect = el.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2;
+          const cy = rect.top + rect.height / 2;
+          const dx = (e.clientX - cx) * strength;
+          const dy = (e.clientY - cy) * strength;
+          gsap.to(el, { x: dx, y: dy, duration: 0.35, ease: "power2.out" });
+        };
+        const handleLeave = () => {
+          gsap.to(el, { x: 0, y: 0, duration: 0.7, ease: "elastic.out(1, 0.4)" });
+        };
+        el.addEventListener("mousemove", handleMove);
+        el.addEventListener("mouseleave", handleLeave);
+        cleanupFns.push(() => {
+          el.removeEventListener("mousemove", handleMove);
+          el.removeEventListener("mouseleave", handleLeave);
+        });
       });
-    });
 
-    // 4. Cursor Morph Labels
-    document.querySelectorAll<HTMLElement>("[data-cursor]").forEach((el) => {
-      const label = el.dataset.cursor || "";
-      const handleEnter = async () => {
-        const { gsap } = await import("gsap");
-        if (cursorRef.current) {
-          cursorRef.current.setAttribute("data-label", label);
-          cursorRef.current.classList.add("cursor--label");
-          gsap.to(cursorRef.current, { width: 70, height: 70, duration: 0.3, ease: "power2.out" });
-        }
-      };
-      const handleLeave = async () => {
-        const { gsap } = await import("gsap");
-        if (cursorRef.current) {
-          cursorRef.current.removeAttribute("data-label");
-          cursorRef.current.classList.remove("cursor--label");
-          gsap.to(cursorRef.current, { width: 12, height: 12, duration: 0.3, ease: "power2.out" });
-        }
-      };
-      el.addEventListener("mouseenter", handleEnter);
-      el.addEventListener("mouseleave", handleLeave);
-      cleanupFns.push(() => {
-        el.removeEventListener("mouseenter", handleEnter);
-        el.removeEventListener("mouseleave", handleLeave);
+      // 4. Cursor Morph Labels
+      document.querySelectorAll<HTMLElement>("[data-cursor]").forEach((el) => {
+        const label = el.dataset.cursor || "";
+        const handleEnter = () => {
+          if (cursorRef.current) {
+            cursorRef.current.setAttribute("data-label", label);
+            cursorRef.current.classList.add("cursor--label");
+            gsap.to(cursorRef.current, { width: 70, height: 70, duration: 0.3, ease: "power2.out" });
+          }
+        };
+        const handleLeave = () => {
+          if (cursorRef.current) {
+            cursorRef.current.removeAttribute("data-label");
+            cursorRef.current.classList.remove("cursor--label");
+            gsap.to(cursorRef.current, { width: 12, height: 12, duration: 0.3, ease: "power2.out" });
+          }
+        };
+        el.addEventListener("mouseenter", handleEnter);
+        el.addEventListener("mouseleave", handleLeave);
+        cleanupFns.push(() => {
+          el.removeEventListener("mouseenter", handleEnter);
+          el.removeEventListener("mouseleave", handleLeave);
+        });
       });
     });
 
@@ -703,8 +699,19 @@ export default function Home() {
 
   const scrollToSection = (href: string) => {
     setMenuOpen(false);
-    const el = document.querySelector(href);
-    if (el && lenisRef.current) lenisRef.current.scrollTo(el, { offset: -80 });
+    const targetId = href.startsWith("#") ? href.substring(1) : href;
+    const el = document.getElementById(targetId) || document.querySelector(href);
+    if (el) {
+      if (lenisRef.current && typeof lenisRef.current.scrollTo === "function") {
+        try {
+          lenisRef.current.scrollTo(el, { offset: -40 });
+        } catch (err) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      } else {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
   };
 
   return (
@@ -1277,39 +1284,39 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
         {/* ═══════════════════════════════════════════════════
             §9 CONTACT — Premium Black & White Glassmorphism Layout
         ══════════════════════════════════════════════════════ */}
-        <section id="contact" className="py-32 px-6 border-t border-white/5 relative overflow-hidden">
+        <section id="contact" className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 border-t border-white/5 relative overflow-hidden">
           {/* Background subtle monochrome ambient glow */}
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-white/[0.02] rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white/[0.02] rounded-full blur-3xl pointer-events-none" />
 
           <div className="max-w-6xl mx-auto relative z-10">
             {/* Section Header */}
-            <div className="contact-title text-center mb-20">
-              <div className="inline-flex items-center gap-3 mb-4">
+            <div className="contact-title text-center mb-12 sm:mb-16 md:mb-20">
+              <div className="inline-flex items-center gap-3 mb-3 sm:mb-4">
                 <span className="block w-6 h-px bg-white/30" />
                 <span className="text-white/30 text-[10px] font-semibold tracking-[0.3em] uppercase">08</span>
                 <span className="block w-6 h-px bg-white/30" />
               </div>
-              <h2 style={{ fontSize: "clamp(3rem, 7vw, 5.5rem)", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1 }}>
+              <h2 style={{ fontSize: "clamp(2.5rem, 7vw, 5.5rem)", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1 }}>
                 Let's <span className="bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">talk.</span>
               </h2>
-              <p className="text-white/40 text-lg mt-4 font-light max-w-md mx-auto">
+              <p className="text-white/40 text-sm sm:text-base md:text-lg mt-3 sm:mt-4 font-light max-w-xs sm:max-w-md mx-auto">
                 A project, opportunity, or just a hello — drop me a message.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 sm:gap-10 items-start">
 
               {/* Left: Social cards grid */}
-              <div className="contact-info-panel lg:col-span-2 space-y-4">
+              <div className="contact-info-panel lg:col-span-2 space-y-3.5 sm:space-y-4">
                 {/* Availability badge - Black & White */}
-                <div className="border border-white/20 bg-white/[0.04] rounded-2xl p-5 flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
+                <div className="border border-white/20 bg-white/[0.04] rounded-2xl p-4 sm:p-5 flex items-center gap-3.5 sm:gap-4">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
                     <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
                   </div>
-                  <div>
-                    <p className="text-white text-sm font-bold font-mono">Available for work</p>
-                    <p className="text-white/40 text-xs font-mono mt-0.5">IST · UTC+5:30 · &lt; 24h response</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-white text-xs sm:text-sm font-bold font-mono">Available for work</p>
+                    <p className="text-white/40 text-[11px] sm:text-xs font-mono mt-0.5 truncate">IST · UTC+5:30 · &lt; 24h response</p>
                   </div>
                 </div>
 
@@ -1364,72 +1371,72 @@ I specialize in building scalable web applications, robust REST APIs, high-perfo
                     href={social.href}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-4 p-4 rounded-2xl border border-white/10 hover:border-white/30 bg-white/[0.03] hover:bg-white/[0.08] hover:scale-[1.02] transition-all duration-300 group backdrop-blur-sm"
+                    className="flex items-center gap-3.5 sm:gap-4 p-3.5 sm:p-4 rounded-2xl border border-white/10 hover:border-white/30 bg-white/[0.03] hover:bg-white/[0.08] active:scale-[0.98] sm:hover:scale-[1.02] transition-all duration-300 group backdrop-blur-sm"
                   >
-                    <div className="w-10 h-10 rounded-xl border border-white/15 bg-white/5 flex items-center justify-center flex-shrink-0 text-white group-hover:scale-110 group-hover:bg-white group-hover:text-black transition-all">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-white/15 bg-white/5 flex items-center justify-center flex-shrink-0 text-white group-hover:scale-110 group-hover:bg-white group-hover:text-black transition-all">
                       {social.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm text-white">{social.label}</p>
-                      <p className="text-white/40 text-xs font-mono truncate">{social.sub}</p>
+                      <p className="font-bold text-xs sm:text-sm text-white">{social.label}</p>
+                      <p className="text-white/40 text-[11px] sm:text-xs font-mono truncate">{social.sub}</p>
                     </div>
                     <ArrowUpRight className="w-4 h-4 text-white/20 group-hover:text-white transition-colors flex-shrink-0" />
                   </a>
                 ))}
 
                 {/* Location — Black & White */}
-                <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/10 bg-white/[0.02]">
-                  <MapPin className="w-4 h-4 text-white/40" />
-                  <span className="text-white/60 text-sm font-mono">{about?.location || "Salem, Tamil Nadu, India"}</span>
+                <div className="flex items-center gap-3 px-3.5 sm:px-4 py-3 rounded-xl border border-white/10 bg-white/[0.02]">
+                  <MapPin className="w-4 h-4 text-white/40 flex-shrink-0" />
+                  <span className="text-white/60 text-xs sm:text-sm font-mono truncate">{about?.location || "Salem, Tamil Nadu, India"}</span>
                 </div>
               </div>
 
               {/* Right: Contact Form */}
               <div className="lg:col-span-3">
-                <div className="contact-form-wrap bg-white/[0.03] border border-white/10 rounded-3xl p-8 md:p-10 backdrop-blur-sm">
+                <div className="contact-form-wrap bg-white/[0.03] border border-white/10 rounded-2xl sm:rounded-3xl p-5 sm:p-8 md:p-10 backdrop-blur-sm">
                   {sentSuccess ? (
-                    <div className="flex flex-col items-center gap-6 py-16 text-center">
-                      <div className="w-20 h-20 rounded-full bg-white/10 border border-white/30 flex items-center justify-center">
-                        <CheckCircle className="w-10 h-10 text-white" />
+                    <div className="flex flex-col items-center gap-4 sm:gap-6 py-10 sm:py-16 text-center">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 border border-white/30 flex items-center justify-center">
+                        <CheckCircle className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                       </div>
                       <div>
-                        <h3 className="text-white text-2xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Message Sent!</h3>
-                        <p className="text-white/45 text-sm mt-2">I'll get back to you within 24 hours.</p>
+                        <h3 className="text-white text-xl sm:text-2xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Message Sent!</h3>
+                        <p className="text-white/45 text-xs sm:text-sm mt-2">I'll get back to you within 24 hours.</p>
                       </div>
                       <button onClick={() => setSentSuccess(false)} className="mt-2 text-white/40 hover:text-white text-xs underline transition-colors">Send another →</button>
                     </div>
                   ) : (
-                    <form onSubmit={handleSendMessage} className="space-y-6">
+                    <form onSubmit={handleSendMessage} className="space-y-5 sm:space-y-6">
                       <div>
-                        <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700 }} className="text-white text-xl mb-1">Send a Message</h3>
-                        <p className="text-white/30 text-sm">I read every message personally.</p>
+                        <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700 }} className="text-white text-lg sm:text-xl mb-1">Send a Message</h3>
+                        <p className="text-white/30 text-xs sm:text-sm">I read every message personally.</p>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                         <div>
-                          <label className="block text-white/40 text-[11px] font-semibold tracking-[0.2em] uppercase mb-2.5">Your Name</label>
+                          <label className="block text-white/40 text-[10px] sm:text-[11px] font-semibold tracking-[0.2em] uppercase mb-2">Your Name</label>
                           <input type="text" required value={formData.name}
                             onChange={e => setFormData({ ...formData, name: e.target.value })}
-                            placeholder="Jane Doe" className="input-minimal" />
+                            placeholder="Jane Doe" className="input-minimal text-sm sm:text-base" />
                         </div>
                         <div>
-                          <label className="block text-white/40 text-[11px] font-semibold tracking-[0.2em] uppercase mb-2.5">Email Address</label>
+                          <label className="block text-white/40 text-[10px] sm:text-[11px] font-semibold tracking-[0.2em] uppercase mb-2">Email Address</label>
                           <input type="email" required value={formData.email}
                             onChange={e => setFormData({ ...formData, email: e.target.value })}
-                            placeholder="jane@company.com" className="input-minimal" />
+                            placeholder="jane@company.com" className="input-minimal text-sm sm:text-base" />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-white/40 text-[11px] font-semibold tracking-[0.2em] uppercase mb-2.5">Message</label>
-                        <textarea required rows={5} value={formData.message}
+                        <label className="block text-white/40 text-[10px] sm:text-[11px] font-semibold tracking-[0.2em] uppercase mb-2">Message</label>
+                        <textarea required rows={4} value={formData.message}
                           onChange={e => setFormData({ ...formData, message: e.target.value })}
                           placeholder="Hey Jeeva, let's work together..."
-                          className="input-minimal resize-none" />
+                          className="input-minimal resize-none text-sm sm:text-base" />
                       </div>
 
                       <button type="submit" disabled={sending} data-magnetic data-cursor="SEND"
-                        className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all hover:bg-zinc-200 shadow-[0_0_25px_rgba(255,255,255,0.2)] disabled:opacity-40 relative overflow-hidden group"
+                        className="w-full flex items-center justify-center gap-3 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all hover:bg-zinc-200 active:scale-[0.98] shadow-[0_0_25px_rgba(255,255,255,0.2)] disabled:opacity-40 relative overflow-hidden group"
                         style={{ background: "#ffffff", color: "#000000" }}
                       >
                         <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />

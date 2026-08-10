@@ -19,6 +19,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXTAUTH_URL || "http://localhost:3000"),
   title: "Jeeva — Software Developer & System Designer",
   description: "Portfolio of Jeeva — Software Developer & System Designer specializing in scalable backend systems and modern web experiences.",
   icons: {
