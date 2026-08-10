@@ -23,7 +23,10 @@ import {
   GitBranch,
   Sparkles,
   Pencil,
-  X
+  X,
+  GripVertical,
+  ChevronUp,
+  ChevronDown
 } from "lucide-react";
 
 export default function AdminDashboardPage() {
@@ -256,6 +259,48 @@ export default function AdminDashboardPage() {
     if (res.ok) fetchAllData();
   };
 
+  const [draggedExpIndex, setDraggedExpIndex] = useState<number | null>(null);
+
+  const saveExperienceOrder = async (updatedList: any[]) => {
+    const payload = updatedList.map((item, index) => ({ id: item.id, order: index }));
+    try {
+      await fetch("/api/experience/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: payload }),
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleExpDragStart = (index: number) => setDraggedExpIndex(index);
+
+  const handleExpDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedExpIndex === null || draggedExpIndex === index) return;
+    const updated = [...experience];
+    const [draggedItem] = updated.splice(draggedExpIndex, 1);
+    updated.splice(index, 0, draggedItem);
+    setDraggedExpIndex(index);
+    setExperience(updated);
+  };
+
+  const handleExpDragEnd = () => {
+    setDraggedExpIndex(null);
+    saveExperienceOrder(experience);
+  };
+
+  const handleMoveExp = (index: number, direction: "up" | "down") => {
+    const newIdx = direction === "up" ? index - 1 : index + 1;
+    if (newIdx < 0 || newIdx >= experience.length) return;
+    const updated = [...experience];
+    const [item] = updated.splice(index, 1);
+    updated.splice(newIdx, 0, item);
+    setExperience(updated);
+    saveExperienceOrder(updated);
+  };
+
   const handleAddEdu = async (e: React.FormEvent) => {
     e.preventDefault();
     const isEditing = !!editingEduId;
@@ -289,6 +334,54 @@ export default function AdminDashboardPage() {
     if (!confirm("Delete this education entry?")) return;
     const res = await fetch(`/api/education/${id}`, { method: "DELETE" });
     if (res.ok) fetchAllData();
+  };
+
+  const [draggedEduIndex, setDraggedEduIndex] = useState<number | null>(null);
+
+  const saveEducationOrder = async (updatedList: any[]) => {
+    const payload = updatedList.map((item, index) => ({ id: item.id, order: index }));
+    try {
+      await fetch("/api/education/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: payload }),
+      });
+    } catch (err) {
+      console.error("Failed to save education order:", err);
+    }
+  };
+
+  const handleEduDragStart = (index: number) => {
+    setDraggedEduIndex(index);
+  };
+
+  const handleEduDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedEduIndex === null || draggedEduIndex === index) return;
+
+    const updated = [...education];
+    const [draggedItem] = updated.splice(draggedEduIndex, 1);
+    updated.splice(index, 0, draggedItem);
+
+    setDraggedEduIndex(index);
+    setEducation(updated);
+  };
+
+  const handleEduDragEnd = () => {
+    setDraggedEduIndex(null);
+    saveEducationOrder(education);
+  };
+
+  const handleMoveEdu = (index: number, direction: "up" | "down") => {
+    const newIdx = direction === "up" ? index - 1 : index + 1;
+    if (newIdx < 0 || newIdx >= education.length) return;
+
+    const updated = [...education];
+    const [item] = updated.splice(index, 1);
+    updated.splice(newIdx, 0, item);
+
+    setEducation(updated);
+    saveEducationOrder(updated);
   };
 
   const handleAddAch = async (e: React.FormEvent) => {
@@ -683,28 +776,63 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="lg:col-span-2 space-y-4">
-              <h2 className="text-base font-bold tracking-tight text-zinc-300 uppercase font-mono">Work History ({experience.length})</h2>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-base font-bold tracking-tight text-zinc-300 uppercase font-mono">Work History ({experience.length})</h2>
+                <span className="text-xs font-mono text-zinc-500 flex items-center gap-1">
+                  <GripVertical className="w-3.5 h-3.5 text-emerald-400" /> Drag items to reorder
+                </span>
+              </div>
               {experience.length === 0 ? (
                 <div className="p-10 border border-dashed border-white/10 rounded-2xl text-center text-zinc-500 font-mono text-sm">
                   No experience entries added yet.
                 </div>
               ) : (
-                experience.map((exp) => (
-                  <div key={exp.id} className="bg-[#0b0b0e] border border-white/10 rounded-2xl p-6 shadow-md hover:border-white/20 transition-all">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h3 className="font-bold text-white text-base">{exp.role} <span className="text-emerald-400">@ {exp.company}</span></h3>
-                        <p className="text-xs font-mono text-zinc-400 mt-1">{exp.period}</p>
-                        <p className="text-sm text-zinc-300 mt-3 font-normal leading-relaxed">{exp.description}</p>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <button onClick={() => handleEditClickExp(exp)} className="text-zinc-500 hover:text-emerald-400 p-2 transition-colors">
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                        </button>
-                        <button onClick={() => handleDeleteExp(exp.id)} className="text-zinc-500 hover:text-red-400 p-2 transition-colors">
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
+                experience.map((exp, idx) => (
+                  <div
+                    key={exp.id}
+                    draggable
+                    onDragStart={() => handleExpDragStart(idx)}
+                    onDragOver={(e) => handleExpDragOver(e, idx)}
+                    onDragEnd={handleExpDragEnd}
+                    className={`bg-[#0b0b0e] border rounded-2xl p-6 shadow-md transition-all cursor-move flex items-center gap-4 ${
+                      draggedExpIndex === idx ? "border-emerald-500/80 bg-emerald-950/20 scale-[1.01]" : "border-white/10 hover:border-white/25"
+                    }`}
+                  >
+                    <div className="text-zinc-600 hover:text-zinc-300 cursor-grab active:cursor-grabbing p-1" title="Drag to reorder">
+                      <GripVertical className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-white text-base">{exp.role} <span className="text-emerald-400">@ {exp.company}</span></h3>
+                      <p className="text-xs font-mono text-zinc-400 mt-1">{exp.period}</p>
+                      <p className="text-sm text-zinc-300 mt-3 font-normal leading-relaxed">{exp.description}</p>
+                    </div>
+                    <div className="flex flex-col gap-1 items-center">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveExp(idx, "up")}
+                        disabled={idx === 0}
+                        className="text-zinc-500 hover:text-white disabled:opacity-20 p-1 transition-colors"
+                        title="Move Up"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveExp(idx, "down")}
+                        disabled={idx === experience.length - 1}
+                        className="text-zinc-500 hover:text-white disabled:opacity-20 p-1 transition-colors"
+                        title="Move Down"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex flex-col gap-2 border-l border-white/10 pl-3">
+                      <button onClick={() => handleEditClickExp(exp)} className="text-zinc-500 hover:text-emerald-400 p-2 transition-colors" title="Edit">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDeleteExp(exp.id)} className="text-zinc-500 hover:text-red-400 p-2 transition-colors" title="Delete">
+                        <Trash2 className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
                 ))
@@ -801,30 +929,65 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="lg:col-span-2 space-y-4">
-              <h2 className="text-base font-bold tracking-tight text-zinc-300 uppercase font-mono">Education Timeline ({education.length})</h2>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-base font-bold tracking-tight text-zinc-300 uppercase font-mono">Education Timeline ({education.length})</h2>
+                <span className="text-xs font-mono text-zinc-500 flex items-center gap-1">
+                  <GripVertical className="w-3.5 h-3.5 text-emerald-400" /> Drag items to reorder
+                </span>
+              </div>
               {education.length === 0 ? (
                 <div className="p-10 border border-dashed border-white/10 rounded-2xl text-center text-zinc-500 font-mono text-sm">
                   No education entries added yet.
                 </div>
               ) : (
-                education.map((edu) => (
-                  <div key={edu.id} className="bg-[#0b0b0e] border border-white/10 rounded-2xl p-6 shadow-md hover:border-white/20 transition-all">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h3 className="font-bold text-white text-base">{edu.degree}</h3>
-                        <p className="text-sm text-zinc-300 font-semibold mt-1">{edu.institution}</p>
-                        <p className="text-xs font-mono text-emerald-400 mt-2">
-                          {edu.period} {edu.grade && `• Grade: ${edu.grade}`} {edu.location && `• ${edu.location}`}
-                        </p>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <button onClick={() => handleEditClickEdu(edu)} className="text-zinc-500 hover:text-emerald-400 p-2 transition-colors" title="Edit">
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDeleteEdu(edu.id)} className="text-zinc-500 hover:text-red-400 p-2 transition-colors" title="Delete">
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
+                education.map((edu, idx) => (
+                  <div
+                    key={edu.id}
+                    draggable
+                    onDragStart={() => handleEduDragStart(idx)}
+                    onDragOver={(e) => handleEduDragOver(e, idx)}
+                    onDragEnd={handleEduDragEnd}
+                    className={`bg-[#0b0b0e] border rounded-2xl p-6 shadow-md transition-all cursor-move flex items-center gap-4 ${
+                      draggedEduIndex === idx ? "border-emerald-500/80 bg-emerald-950/20 scale-[1.01]" : "border-white/10 hover:border-white/25"
+                    }`}
+                  >
+                    <div className="text-zinc-600 hover:text-zinc-300 cursor-grab active:cursor-grabbing p-1" title="Drag to reorder">
+                      <GripVertical className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-white text-base">{edu.degree}</h3>
+                      <p className="text-sm text-zinc-300 font-semibold mt-1">{edu.institution}</p>
+                      <p className="text-xs font-mono text-emerald-400 mt-2">
+                        {edu.period} {edu.grade && `• Grade: ${edu.grade}`} {edu.location && `• ${edu.location}`}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-1 items-center">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveEdu(idx, "up")}
+                        disabled={idx === 0}
+                        className="text-zinc-500 hover:text-white disabled:opacity-20 p-1 transition-colors"
+                        title="Move Up"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveEdu(idx, "down")}
+                        disabled={idx === education.length - 1}
+                        className="text-zinc-500 hover:text-white disabled:opacity-20 p-1 transition-colors"
+                        title="Move Down"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex flex-col gap-2 border-l border-white/10 pl-3">
+                      <button onClick={() => handleEditClickEdu(edu)} className="text-zinc-500 hover:text-emerald-400 p-2 transition-colors" title="Edit">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDeleteEdu(edu.id)} className="text-zinc-500 hover:text-red-400 p-2 transition-colors" title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 ))
